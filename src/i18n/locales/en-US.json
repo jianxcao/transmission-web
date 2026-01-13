@@ -88,6 +88,17 @@
     "changeSuccess": "Directory changed successfully",
     "changeFailed": "Failed to change directory"
   },
+  "renameTorrentDialog": {
+    "title": "Rename Torrent",
+    "selectedCount": "Selected: {count}",
+    "newName": "New Name",
+    "newNamePlaceholder": "Please enter new name",
+    "currentName": "Current Name",
+    "pleaseInputName": "Please enter new name",
+    "invalidChars": "Name contains invalid characters, automatically replaced",
+    "renameSuccess": "Renamed successfully",
+    "renameFailed": "Failed to rename"
+  },
   "changeLabelsDialog": {
     "title": "Change Labels",
     "selectedCount": "Selected count: {count}",
@@ -281,6 +292,7 @@
     "remove": "Remove",
     "reannounce": "Reannounce (Get more peers)",
     "changeDir": "Change Directory",
+    "rename": "Rename",
     "copyName": "Copy Name",
     "copyPath": "Copy Path",
     "copyMagnet": "Copy Magnet",

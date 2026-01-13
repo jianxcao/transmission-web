@@ -88,6 +88,17 @@
     "changeSuccess": "目录更改成功",
     "changeFailed": "目录更改失败"
   },
+  "renameTorrentDialog": {
+    "title": "重命名种子",
+    "selectedCount": "选中总数：{count}",
+    "newName": "新名称",
+    "newNamePlaceholder": "请输入新名称",
+    "currentName": "当前名称",
+    "pleaseInputName": "请输入新名称",
+    "invalidChars": "名称包含非法字符，已自动替换",
+    "renameSuccess": "重命名成功",
+    "renameFailed": "重命名失败"
+  },
   "changeLabelsDialog": {
     "title": "更改标签",
     "selectedCount": "选中总数：{count}",
@@ -281,6 +292,7 @@
     "remove": "删除",
     "reannounce": "重新汇报(获取更多peer)",
     "changeDir": "变更目录",
+    "rename": "重命名",
     "copyName": "复制名称",
     "copyPath": "复制路径",
     "copyMagnet": "复制磁力链接",

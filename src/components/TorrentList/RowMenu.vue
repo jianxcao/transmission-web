@@ -19,6 +19,7 @@
   <ChangeLables v-model:show="showChangeLabelDialog" :ids="id ? [id] : undefined" />
   <ChangeTracker v-model:show="showChangeTrackerDialog" :ids="id ? [id] : undefined" />
   <OtherTorrentSetting v-model:show="showChangeOtherDialog" :ids="id ? [id] : undefined" />
+  <RenameTorrentDialog v-model:show="showRenameDialog" :ids="id ? [id] : undefined" />
 </template>
 
 <script setup lang="ts">
@@ -36,6 +37,7 @@ import FolderCopyIcon from '@/assets/icons/folderCopy.svg?component'
 import {
   CaretForwardCircle,
   CopySharp,
+  CreateOutline,
   FlashSharp,
   FolderOpenSharp,
   MagnetSharp,
@@ -74,6 +76,7 @@ const showChangeDirDialog = ref(false)
 const showChangeLabelDialog = ref(false)
 const showChangeTrackerDialog = ref(false)
 const showChangeOtherDialog = ref(false)
+const showRenameDialog = ref(false)
 const dropdownOptions = computed(() => {
   return [
     { label: t('rowMenu.forceStart'), key: 'forceStart', icon: renderIcon(FlashSharp, theme.value.primaryColor) },
@@ -87,6 +90,7 @@ const dropdownOptions = computed(() => {
     },
     { label: t('rowMenu.reannounce'), key: 'reannounce', icon: renderIcon(RefreshCircle, theme.value.primaryColor) },
     { label: t('rowMenu.changeDir'), key: 'changeDir', icon: renderIcon(FolderOpenSharp, theme.value.primaryColor) },
+    { label: t('rowMenu.rename'), key: 'rename', icon: renderIcon(CreateOutline, theme.value.primaryColor) },
     {
       type: 'divider',
       key: 'd2'
@@ -247,6 +251,9 @@ async function onDropdownSelect(key: string) {
       break
     case 'changeDir':
       showChangeDirDialog.value = true
+      break
+    case 'rename':
+      showRenameDialog.value = true
       break
     case 'changeLabel':
       showChangeLabelDialog.value = true
