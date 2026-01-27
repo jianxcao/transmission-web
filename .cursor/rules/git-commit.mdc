@@ -1,0 +1,292 @@
+---
+description: Git 提交规范 - Conventional Commits
+alwaysApply: true
+---
+
+# Git 提交规范
+
+遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范
+
+## 提交消息格式
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### 基本格式
+```bash
+# 简单提交
+feat: 添加种子过滤功能
+
+# 带 scope 的提交
+fix(torrent): 修复下载进度计算错误
+
+# 带 body 的提交
+feat(ui): 添加暗色主题支持
+
+- 实现主题切换功能
+- 添加主题配置选项
+- 更新所有组件样式
+```
+
+## Type 类型
+
+### 主要类型
+- **feat**: 新功能
+- **fix**: 修复 bug
+- **docs**: 文档变更
+- **style**: 代码格式（不影响代码运行的变动）
+- **refactor**: 重构（既不是新增功能，也不是修复 bug）
+- **perf**: 性能优化
+- **test**: 添加测试
+- **chore**: 构建过程或辅助工具的变动
+
+### 特殊类型
+- **revert**: 回滚之前的提交
+- **build**: 影响构建系统或外部依赖的变更
+- **ci**: CI 配置文件和脚本的变更
+
+## Scope 范围
+
+根据项目结构定义的范围：
+
+### 功能模块
+- **torrent**: 种子相关功能
+- **ui**: 用户界面
+- **api**: API 接口
+- **store**: 状态管理
+- **router**: 路由
+- **i18n**: 国际化
+
+### 组件范围
+- **header**: 应用头部
+- **sidebar**: 侧边栏
+- **list**: 列表组件
+- **detail**: 详情组件
+- **dialog**: 对话框组件
+- **settings**: 设置相关
+
+### 工具和配置
+- **deps**: 依赖管理
+- **config**: 配置文件
+- **build**: 构建相关
+- **ci**: CI/CD
+
+## Subject 主题
+
+### 规则
+- 使用中文描述
+- 使用祈使句，现在时态（"添加"而不是"添加了"）
+- 首字母小写
+- 结尾不加句号
+- 不超过 50 个字符
+
+### 示例
+```bash
+# ✅ 好的 subject
+feat: 添加种子搜索功能
+fix: 修复上传速度显示错误
+docs: 更新 README 安装说明
+
+# ❌ 不好的 subject
+feat: 添加了种子搜索功能。
+fix: bug修复
+docs: 修改文档
+```
+
+## Body 正文
+
+### 何时需要 body
+- 解释"为什么"做这个改动
+- 如何解决问题
+- 有什么副作用
+- 改动涉及的细节
+
+### 格式规则
+- 与 subject 之间空一行
+- 使用列表或段落
+- 每行不超过 72 个字符
+
+### 示例
+```bash
+feat(list): 实现虚拟滚动优化性能
+
+当种子数量超过 1000 时，传统的列表渲染会导致性能问题：
+- 使用 vue-virtual-scroller 实现虚拟滚动
+- 仅渲染可见区域的种子项
+- 支持动态高度计算
+
+性能提升：
+- 初始渲染时间从 2s 降低到 200ms
+- 内存占用减少 80%
+```
+
+## Footer 页脚
+
+### Breaking Changes
+```bash
+feat(api): 更新 RPC API 版本到 v17
+
+BREAKING CHANGE: 移除了 torrent-get 方法的 fields 参数
+现在需要使用 torrent-get-all 方法获取所有字段
+```
+
+### 关联 Issue
+```bash
+# 关闭 issue
+fix(torrent): 修复种子状态更新延迟
+
+Closes #123
+
+# 关联多个 issue
+fix(ui): 修复移动端布局问题
+
+Fixes #123, #124, #125
+
+# 仅关联不关闭
+feat(settings): 添加网络设置页面
+
+Refs #234
+```
+
+## 完整示例
+
+### 简单提交
+```bash
+feat(list): 添加种子排序功能
+```
+
+### 标准提交
+```bash
+fix(torrent): 修复暂停状态下的进度显示
+
+当种子处于暂停状态时，进度条仍然显示动画效果。
+修改 StatusCell 组件的逻辑，在暂停状态下禁用动画。
+
+Fixes #89
+```
+
+### 包含 Breaking Change
+```bash
+feat(store)!: 重构 torrent store 结构
+
+BREAKING CHANGE: torrent store 的 API 已完全重构
+- 移除 getTorrentById 方法，使用 torrents computed 属性
+- 重命名 updateTorrent 为 patchTorrent
+- actions 现在返回 Promise
+
+迁移指南：
+```typescript
+// 之前
+store.getTorrentById(id)
+
+// 现在
+store.torrents.find(t => t.id === id)
+```
+
+Refs #156
+```
+
+### Revert 提交
+```bash
+revert: feat(list): 添加种子排序功能
+
+This reverts commit 1234567890abcdef.
+
+原因：排序功能导致性能问题，需要重新设计
+```
+
+## 提交频率
+
+### 何时提交
+- ✅ 完成一个独立的功能或修复
+- ✅ 代码通过测试和 lint 检查
+- ✅ 逻辑完整，不会破坏现有功能
+- ❌ 不要提交未完成的代码
+- ❌ 不要提交无法运行的代码
+
+### 提交大小
+- 每个 commit 只做一件事
+- 如果一个功能太大，拆分为多个 commit
+- 相关的改动放在同一个 commit
+
+## 最佳实践
+
+### 1. 提交前检查
+```bash
+# 检查改动
+git diff
+
+# 运行 lint
+pnpm lint
+
+# 运行类型检查
+pnpm check
+
+# 确保构建成功
+pnpm build
+```
+
+### 2. 使用 commitlint（推荐）
+项目可以添加 commitlint 强制执行规范：
+```json
+{
+  "devDependencies": {
+    "@commitlint/cli": "^18.0.0",
+    "@commitlint/config-conventional": "^18.0.0"
+  }
+}
+```
+
+### 3. 原子性提交
+```bash
+# ✅ 好的提交方式
+git add src/components/TorrentList.vue
+git commit -m "feat(list): 添加多选功能"
+
+git add src/store/torrent.ts
+git commit -m "feat(store): 添加批量操作方法"
+
+# ❌ 不好的提交方式
+git add .
+git commit -m "添加新功能"
+```
+
+### 4. 提交前暂存
+```bash
+# 使用 stash 保存未完成的工作
+git stash
+
+# 提交已完成的部分
+git add <files>
+git commit -m "feat: 完成的功能"
+
+# 恢复未完成的工作
+git stash pop
+```
+
+## 模板
+
+可以设置 git commit 模板：
+
+```bash
+# .gitmessage
+# <type>(<scope>): <subject>
+# 
+# <body>
+# 
+# <footer>
+#
+# Type: feat, fix, docs, style, refactor, perf, test, chore
+# Scope: torrent, ui, api, store, router, i18n, etc.
+# Subject: 简短描述（不超过 50 字符）
+# Body: 详细说明（可选）
+# Footer: Breaking changes, Issue 关联（可选）
+
+# 配置模板
+git config commit.template .gitmessage
+```

@@ -1,0 +1,413 @@
+---
+description: 项目文件组织和结构规范
+alwaysApply: true
+---
+
+# 文件组织规范
+
+## 目录结构
+
+### 标准目录布局
+```
+src/
+├── api/              # API 接口层
+│   ├── rpc.ts       # Transmission RPC API
+│   └── trpc.ts      # tRPC 配置
+├── assets/          # 静态资源
+│   └── icons/       # SVG 图标
+├── components/      # 组件
+│   ├── AppHeader/   # 应用头部
+│   ├── CanvasList/  # Canvas 列表（虚拟滚动）
+│   ├── TorrentList/ # 种子列表
+│   ├── TorrentDetail/ # 种子详情
+│   ├── SiderbarView/ # 侧边栏
+│   └── dialog/      # 对话框组件
+├── composables/     # 可组合函数
+├── const/           # 常量定义
+├── i18n/            # 国际化
+│   └── locales/     # 语言文件
+├── router/          # 路由配置
+├── store/           # 状态管理（Pinia）
+├── styles/          # 全局样式
+├── types/           # TypeScript 类型定义
+├── utils/           # 工具函数
+└── views/           # 页面视图
+```
+
+## 组件组织
+
+### 组件文件夹结构
+```
+# 简单组件（单文件）
+components/
+├── IconButton.vue
+├── LanguageSwitcher.vue
+└── StatusBar.vue
+
+# 复杂组件（文件夹）
+components/
+└── TorrentList/
+    ├── TorrentList.vue          # 主组件
+    ├── TorrentListHeader.vue    # 子组件
+    ├── TorrentListRow.vue       # 子组件
+    ├── HeaderMenu.vue           # 菜单组件
+    ├── RowMenu.vue              # 菜单组件
+    └── cells/                   # 单元格组件
+        ├── NameCell.vue
+        ├── StatusCell.vue
+        └── ProgressCell.vue
+```
+
+### 组件命名规则
+```
+# ✅ 使用 PascalCase
+AppHeader.vue
+TorrentList.vue
+SettingsDialog.vue
+
+# ✅ 多词组件名
+UserProfile.vue
+TorrentDetail.vue
+ErrorMessage.vue
+
+# ❌ 避免单词组件名
+Header.vue  // 使用 AppHeader.vue
+List.vue    // 使用 TorrentList.vue
+```
+
+### 组件类型组织
+```
+components/
+├── layout/           # 布局组件
+│   ├── LayoutView.vue
+│   └── ResizeLine.vue
+├── common/           # 通用组件
+│   ├── IconButton.vue
+│   └── LanguageSwitcher.vue
+├── business/         # 业务组件
+│   ├── TorrentList/
+│   └── TorrentDetail/
+└── dialog/           # 对话框
+    ├── AddDialog.vue
+    └── SettingsDialog.vue
+```
+
+## Composables 组织
+
+### Composables 文件结构
+```
+composables/
+├── useTorrentFilter.ts    # 种子过滤
+├── useTorrentSort.ts      # 种子排序
+├── useVirtualList.ts      # 虚拟列表
+├── useWebSocket.ts        # WebSocket 连接
+├── usePolling.ts          # 轮询
+└── useLocalStorage.ts     # 本地存储
+```
+
+### Composable 命名
+```typescript
+// ✅ use + PascalCase
+export function useTorrentFilter() {}
+export function useVirtualList() {}
+export function useLocalStorage() {}
+
+// ❌ 避免
+export function torrentFilter() {}  // 缺少 use 前缀
+export function use_torrent_filter() {}  // 使用下划线
+```
+
+### Composable 结构
+```typescript
+// composables/useTorrentFilter.ts
+import type { TorrentInfo } from '@/types'
+
+/**
+ * 种子过滤 composable
+ */
+export function useTorrentFilter(torrents: Ref<TorrentInfo[]>) {
+  // 状态
+  const filterText = ref('')
+  const filterStatus = ref<TorrentStatus | 'all'>('all')
+  
+  // 计算属性
+  const filteredTorrents = computed(() => {
+    // 过滤逻辑
+  })
+  
+  // 方法
+  const clearFilters = () => {
+    filterText.value = ''
+    filterStatus.value = 'all'
+  }
+  
+  // 返回公开的 API
+  return {
+    filterText,
+    filterStatus,
+    filteredTorrents,
+    clearFilters
+  }
+}
+```
+
+## Store 组织
+
+### Store 文件结构
+```
+store/
+├── index.ts           # Store 主入口
+├── torrent.ts         # 种子 store
+├── torrentUtils.ts    # 种子工具函数
+├── session.ts         # 会话 store
+├── setting.ts         # 设置 store
+└── stats.ts           # 统计 store
+```
+
+### Store 命名和导出
+```typescript
+// store/torrent.ts
+export const useTorrentStore = defineStore('torrent', () => {
+  // store 实现
+})
+
+// 使用
+import { useTorrentStore } from '@/store/torrent'
+```
+
+## 类型定义组织
+
+### 类型文件结构
+```
+types/
+├── index.ts           # 主类型文件
+├── torrent.ts         # 种子相关类型
+├── api.ts             # API 相关类型
+└── ui.ts              # UI 相关类型
+```
+
+### 类型导出
+```typescript
+// types/torrent.ts
+export interface TorrentInfo {
+  id: number
+  name: string
+  // ...
+}
+
+export type TorrentStatus = 'stopped' | 'checking' | 'downloading' | 'seeding'
+
+// types/index.ts
+export * from './torrent'
+export * from './api'
+export * from './ui'
+```
+
+## 工具函数组织
+
+### Utils 文件结构
+```
+utils/
+├── format.ts          # 格式化函数
+├── date.ts            # 日期处理
+├── storage.ts         # 存储操作
+└── validators.ts      # 验证函数
+```
+
+### 工具函数示例
+```typescript
+// utils/format.ts
+/**
+ * 格式化字节大小
+ */
+export function formatBytes(bytes: number): string {
+  // 实现
+}
+
+/**
+ * 格式化速率
+ */
+export function formatSpeed(bytesPerSecond: number): string {
+  // 实现
+}
+
+// 导出所有格式化函数
+export default {
+  formatBytes,
+  formatSpeed
+}
+```
+
+## 样式组织
+
+### 样式文件结构
+```
+src/
+├── style.css          # 全局样式入口
+└── styles/
+    ├── variables.less # 变量定义
+    ├── mixins.less    # 混入
+    └── animations.less # 动画
+```
+
+### 组件样式
+```vue
+<!-- ✅ 优先使用 Tailwind -->
+<template>
+  <div class="flex items-center gap-4 p-4">
+    <!-- 内容 -->
+  </div>
+</template>
+
+<!-- ✅ 必要时使用 scoped 样式 -->
+<style lang="less" scoped>
+.custom-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+}
+</style>
+```
+
+## 路由组织
+
+### 路由文件结构
+```
+router/
+├── index.ts           # 路由主配置
+├── routes.ts          # 路由定义（可选）
+└── guards.ts          # 路由守卫（可选）
+```
+
+### 路由定义
+```typescript
+// router/index.ts
+const routes = [
+  {
+    path: '/',
+    name: 'dashboard',
+    component: () => import('@/views/DashboardView.vue')
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsPageView.vue')
+  }
+]
+```
+
+## 国际化组织
+
+### i18n 文件结构
+```
+i18n/
+├── index.ts           # i18n 配置
+└── locales/
+    ├── en-US.json     # 英文
+    └── zh-CN.json     # 简体中文
+```
+
+### 翻译文件组织
+```json
+// locales/zh-CN.json
+{
+  "common": {
+    "ok": "确定",
+    "cancel": "取消"
+  },
+  "torrent": {
+    "add": "添加种子",
+    "delete": "删除种子",
+    "status": {
+      "stopped": "已停止",
+      "downloading": "下载中"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "network": "网络设置"
+  }
+}
+```
+
+## 资源文件组织
+
+### Assets 结构
+```
+assets/
+└── icons/
+    ├── arrowDown.svg
+    ├── pause.svg
+    └── magnet.svg
+
+public/
+├── apple-touch-icon.png
+└── transmission.svg
+```
+
+### 资源导入
+```typescript
+// ✅ SVG 作为组件导入
+import ArrowDownIcon from '@/assets/icons/arrowDown.svg?component'
+
+// ✅ SVG 作为 URL 导入
+import arrowDownUrl from '@/assets/icons/arrowDown.svg?url'
+```
+
+## 文件命名总结
+
+### 组件文件
+- **格式**: PascalCase.vue
+- **示例**: `AppHeader.vue`, `TorrentList.vue`
+
+### TypeScript 文件
+- **Composables**: usePascalCase.ts
+- **Store**: camelCase.ts
+- **Utils**: camelCase.ts
+- **Types**: camelCase.ts
+
+### 样式文件
+- **格式**: kebab-case.less
+- **示例**: `global-styles.less`, `theme-variables.less`
+
+### 测试文件
+- **格式**: ComponentName.spec.ts
+- **示例**: `TorrentList.spec.ts`, `useTorrentFilter.spec.ts`
+
+## 导入路径
+
+### 使用路径别名
+```typescript
+// ✅ 使用 @ 别名
+import { useTorrentStore } from '@/store/torrent'
+import TorrentList from '@/components/TorrentList/TorrentList.vue'
+
+// ❌ 避免相对路径（深层嵌套时）
+import { useTorrentStore } from '../../../store/torrent'
+```
+
+### 路径别名配置
+```typescript
+// vite.config.ts
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
+  }
+})
+```
+
+## 文件大小限制
+
+### 推荐限制
+- **组件文件**: < 300 行
+- **Composable**: < 150 行
+- **Store**: < 400 行
+- **工具函数**: < 100 行
+
+### 重构建议
+当文件超过限制时，考虑：
+- 拆分为多个文件
+- 提取可复用逻辑
+- 创建子组件
+- 使用 composables

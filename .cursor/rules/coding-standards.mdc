@@ -1,0 +1,327 @@
+---
+description: 项目代码编写标准和最佳实践
+alwaysApply: true
+---
+
+# 代码编写规范
+
+## 代码风格
+
+### 格式化
+- 使用 Prettier 进行代码格式化
+- 保存文件时自动格式化
+- 遵循项目的 ESLint 配置
+- 使用 2 空格缩进
+
+### 命名规范
+```typescript
+// ✅ 组件命名：PascalCase
+AppHeader.vue
+SettingsDialog.vue
+TorrentList.vue
+
+// ✅ 文件夹命名：PascalCase（组件文件夹）
+components/TorrentDetail/
+components/CanvasList/
+
+// ✅ Composables：use + PascalCase
+useVirtualList.ts
+useCommonViewport.ts
+useTorrentFilter.ts
+
+// ✅ Store 文件：camelCase + Store 后缀
+torrentStore.ts
+sessionStore.ts
+settingStore.ts
+
+// ✅ 工具函数：camelCase
+formatBytes.ts
+parseDate.ts
+calculateProgress.ts
+
+// ✅ 常量：UPPER_SNAKE_CASE
+const MAX_RETRIES = 3
+const DEFAULT_PAGE_SIZE = 50
+```
+
+## TypeScript 使用
+
+### 类型定义
+```typescript
+// ✅ 优先使用 interface 定义对象类型
+interface TorrentInfo {
+  id: number
+  name: string
+  status: TorrentStatus
+  downloadDir: string
+}
+
+// ✅ 使用 type 定义联合类型或复杂类型
+type TorrentStatus = 'stopped' | 'checking' | 'downloading' | 'seeding'
+type Nullable<T> = T | null
+
+// ❌ 避免使用 any
+const data: any = response.data // 不推荐
+
+// ✅ 使用具体类型或 unknown
+const data: TorrentInfo = response.data
+```
+
+### 类型导出
+```typescript
+// ✅ 导出类型时使用 export type
+export type { TorrentInfo, TorrentStatus }
+export interface SessionStats {
+  downloadSpeed: number
+  uploadSpeed: number
+}
+```
+
+## 组件编写
+
+### Props 定义
+```typescript
+// ✅ 使用 TypeScript + defineProps
+interface Props {
+  torrent: TorrentInfo
+  showDetails?: boolean
+  onUpdate?: (id: number) => void
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  showDetails: false
+})
+
+// ✅ 复杂对象 props 使用 validator
+const props = defineProps({
+  status: {
+    type: String as PropType<TorrentStatus>,
+    required: true,
+    validator: (value: TorrentStatus) => {
+      return ['stopped', 'checking', 'downloading', 'seeding'].includes(value)
+    }
+  }
+})
+```
+
+### Emits 定义
+```typescript
+// ✅ 明确声明 emit 事件及其参数类型
+const emit = defineEmits<{
+  update: [id: number, data: Partial<TorrentInfo>]
+  delete: [id: number]
+  error: [message: string]
+}>()
+
+// 使用
+emit('update', torrent.id, { name: 'new name' })
+```
+
+### Composables 使用
+```typescript
+// ✅ 将可复用逻辑提取为 composable
+// composables/useTorrentFilter.ts
+export function useTorrentFilter(torrents: Ref<TorrentInfo[]>) {
+  const filterText = ref('')
+  const filteredTorrents = computed(() => {
+    if (!filterText.value) return torrents.value
+    return torrents.value.filter(t => 
+      t.name.toLowerCase().includes(filterText.value.toLowerCase())
+    )
+  })
+  
+  return {
+    filterText,
+    filteredTorrents
+  }
+}
+```
+
+## 错误处理
+
+### 统一错误处理
+```typescript
+// ✅ 使用 try-catch 包裹可能失败的操作
+async function fetchTorrents() {
+  try {
+    const response = await torrentApi.getAll()
+    return response.data
+  } catch (error) {
+    console.error('Failed to fetch torrents:', error)
+    message.error('获取种子列表失败')
+    throw error
+  }
+}
+
+// ✅ JSON 解析使用 try-catch
+try {
+  const config = JSON.parse(localStorage.getItem('config') || '{}')
+} catch (error) {
+  console.error('Failed to parse config:', error)
+  return {}
+}
+```
+
+### 用户友好的错误提示
+```typescript
+// ✅ 使用 Naive UI 的 message 组件显示错误
+import { useMessage } from 'naive-ui'
+
+const message = useMessage()
+
+try {
+  await deleteTorrent(id)
+  message.success('删除成功')
+} catch (error) {
+  message.error('删除失败，请重试')
+}
+```
+
+## 性能优化
+
+### 计算属性
+```typescript
+// ✅ 使用 computed 缓存计算结果
+const totalSize = computed(() => 
+  torrents.value.reduce((sum, t) => sum + t.totalSize, 0)
+)
+
+// ❌ 避免在模板中直接计算
+<template>
+  <!-- 不推荐 -->
+  <div>{{ torrents.reduce((sum, t) => sum + t.totalSize, 0) }}</div>
+</template>
+```
+
+### v-show vs v-if
+```vue
+<!-- ✅ 频繁切换使用 v-show -->
+<div v-show="isVisible">频繁切换的内容</div>
+
+<!-- ✅ 条件渲染使用 v-if -->
+<div v-if="hasData">初始条件渲染</div>
+```
+
+### 列表渲染
+```vue
+<!-- ✅ 使用 key 优化列表渲染 -->
+<div v-for="torrent in torrents" :key="torrent.id">
+  {{ torrent.name }}
+</div>
+
+<!-- ❌ 避免使用 index 作为 key -->
+<div v-for="(torrent, index) in torrents" :key="index">
+  {{ torrent.name }}
+</div>
+```
+
+## 样式编写
+
+### 样式优先级
+```vue
+<script setup lang="ts">
+// 1. 优先使用 Tailwind 4 工具类
+</script>
+
+<template>
+  <!-- ✅ 使用 Tailwind -->
+  <div class="flex items-center gap-4 p-4">
+    <button class="px-4 py-2 bg-blue-500 text-white rounded">
+      Click me
+    </button>
+  </div>
+  
+  <!-- ✅ 使用 Naive UI 组件 -->
+  <n-button type="primary">Click me</n-button>
+  
+  <!-- ⚠️ 仅在必要时使用 Less -->
+  <div class="custom-style"></div>
+</template>
+
+<style lang="less" scoped>
+// 仅用于动态样式或复杂样式
+.custom-style {
+  background: linear-gradient(45deg, @primary-color, @secondary-color);
+}
+</style>
+```
+
+### 避免深层样式污染
+```vue
+<style lang="less" scoped>
+// ❌ 避免
+:deep(.n-button) {
+  /* 修改组件库样式 */
+}
+
+// ✅ 使用组件的 props 或 slots
+</style>
+```
+
+## 注释规范
+
+### 组件注释
+```typescript
+/**
+ * 种子列表组件
+ * 
+ * 显示所有种子的列表，支持虚拟滚动和过滤功能
+ * 
+ * @example
+ * <TorrentList :torrents="torrents" @select="handleSelect" />
+ */
+export default defineComponent({
+  name: 'TorrentList'
+})
+```
+
+### 复杂逻辑注释
+```typescript
+// ✅ 为复杂逻辑添加注释
+// 计算种子的下载进度百分比
+// 如果 totalSize 为 0，返回 0 避免除零错误
+const progress = computed(() => {
+  if (torrent.value.totalSize === 0) return 0
+  return (torrent.value.downloadedSize / torrent.value.totalSize) * 100
+})
+```
+
+## 导入规范
+
+### 导入顺序
+```typescript
+// 1. Vue 相关
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+// 2. 第三方库
+import { useMessage } from 'naive-ui'
+import { debounce } from 'lodash-es'
+
+// 3. 本地模块
+import { useTorrentStore } from '@/store/torrent'
+import type { TorrentInfo } from '@/types'
+import { formatBytes } from '@/utils/format'
+
+// 4. 组件
+import TorrentList from '@/components/TorrentList/TorrentList.vue'
+
+// 5. 样式
+import './style.less'
+```
+
+## 测试友好
+
+### 可测试的代码
+```typescript
+// ✅ 将业务逻辑从组件中分离
+export function calculateProgress(downloaded: number, total: number): number {
+  if (total === 0) return 0
+  return Math.round((downloaded / total) * 100)
+}
+
+// 组件中使用
+const progress = computed(() => 
+  calculateProgress(torrent.value.downloadedSize, torrent.value.totalSize)
+)
+```
