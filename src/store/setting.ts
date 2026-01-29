@@ -51,7 +51,7 @@ export const useSettingStore = defineStore('setting', () => {
       },
       menuExpandedKeys: ['status', 'labels', 'dir'],
       // 忽略域名中的部分前缀
-      ignoredTrackerPrefixes: ["t", "tr", "tk", "tracker", "bt", "open", "opentracker",]
+      ignoredTrackerPrefixes: ['t', 'tr', 'tk', 'tracker', 'bt', 'open', 'opentracker', 'pt']
     },
     localStorage,
     { mergeDefaults: true, deep: true, writeDefaults: true }
@@ -166,7 +166,7 @@ export const useSettingStore = defineStore('setting', () => {
   }
 
   const ignoredTrackerPrefixesReg = computed(() => {
-    return new RegExp(`^(?<prefix>(${setting.value.ignoredTrackerPrefixes.join("|")})\\d*)\\.[^.]+\\.[^.]+$`, "i")
+    return new RegExp(`^(?<prefix>(${setting.value.ignoredTrackerPrefixes.join('|')})\\d*)\\.[^.]+\\.[^.]+$`, 'i')
   })
 
   // 菜单展开状态

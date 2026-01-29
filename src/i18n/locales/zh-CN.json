@@ -232,7 +232,9 @@
     "enableScript": "启用种子完成脚本",
     "scriptPlaceholder": "是否启用种子完成脚本",
     "defaultTrackers": "默认tracker列表",
-    "defaultTrackersPlaceholder": "默认tracker列表"
+    "defaultTrackersPlaceholder": "默认tracker列表",
+    "ignoredPrefixes": "忽略的 Tracker 前缀",
+    "ignoredPrefixesHint": "当 Tracker 的子域名看起来像这些字符串之一 +（可选）数字时，它将被省略。这会影响过滤器中的分组和表格列中的显示。您可以在此处使用正则表达式进行更高级的过滤，列表将使用 \"|\" 组合。"
   },
   "queueSettings": {
     "title": "队列设置",

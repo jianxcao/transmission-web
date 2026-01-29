@@ -4,6 +4,7 @@ import { Status } from '@/types/tr'
 import { ShuffleOutline } from '@vicons/ionicons5'
 import i18n from '@/i18n'
 import { isFunction } from 'lodash-es'
+import { useSettingStore } from './setting'
 
 export interface IMenuItem {
   icon?: Component
@@ -22,6 +23,7 @@ export const detailFilterOptions = function (
   statusSet: Map<string, IMenuItem>
 ) {
   const $t = i18n.global.t
+  const settingStore = useSettingStore()
   // === 1. 统计各种选项（用于生成过滤选项） ===
   // labels 统计
   if (Array.isArray(t.labels) && t.labels.length > 0) {
@@ -41,6 +43,11 @@ export const detailFilterOptions = function (
       const portMatch = portRe.exec(host)
       if (portMatch != null) {
         host = host.substring(0, portMatch.index)
+      }
+      const prefixMatch = settingStore.ignoredTrackerPrefixesReg.exec(host)
+      // console.debug("prefixMatch", prefixMatch, settingStore.ignoredTrackerPrefixesReg)
+      if (prefixMatch?.groups !== undefined) {
+        host = host.substring(prefixMatch.groups.prefix.length + 1)
       }
       const prev = trackerSet.get(host)
       trackerSet.set(host, { count: (prev?.count || 0) + 1 })

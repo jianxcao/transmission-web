@@ -232,7 +232,9 @@
     "enableScript": "Enable Torrent Completion Script",
     "scriptPlaceholder": "Whether to enable torrent completion script",
     "defaultTrackers": "Default Tracker List",
-    "defaultTrackersPlaceholder": "Default tracker list"
+    "defaultTrackersPlaceholder": "Default tracker list",
+    "ignoredPrefixes": "Ignored Tracker Prefixes",
+    "ignoredPrefixesHint": "When the subdomain of a tracker looks like one of these strings + (optionally) a number, it will be omitted. This affects the grouping in filters and the display in table columns. You can use regular expressions here for more advanced filtering, and the list will be combined using \"|\"."
   },
   "queueSettings": {
     "title": "Queue Settings",

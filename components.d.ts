@@ -52,6 +52,7 @@ declare module 'vue' {
     NDrawer: typeof import('naive-ui')['NDrawer']
     NDrawerContent: typeof import('naive-ui')['NDrawerContent']
     NDropdown: typeof import('naive-ui')['NDropdown']
+    NDynamicTags: typeof import('naive-ui')['NDynamicTags']
     NEl: typeof import('naive-ui')['NEl']
     NElement: typeof import('naive-ui')['NElement']
     NetworkSettings: typeof import('./src/components/dialog/settings/NetworkSettings.vue')['default']
