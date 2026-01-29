@@ -1,13 +1,19 @@
 <template>
-  <n-menu :indent="8" :options="menuOpts" v-model:value="torrentStore.trackerFilter" :default-expand-all="true" />
+  <n-menu
+    :indent="8"
+    :options="menuOpts"
+    v-model:value="torrentStore.trackerFilter"
+    v-model:expanded-keys="settingStore.menuExpandedKeys"
+  />
 </template>
 <script setup lang="ts">
 import StormTracker from '@/assets/icons/stormTracker.svg?component'
-import { useTorrentStore } from '@/store'
+import { useTorrentStore, useSettingStore } from '@/store'
 import { renderIcon } from '@/utils'
 import { useI18n } from 'vue-i18n'
 
 const torrentStore = useTorrentStore()
+const settingStore = useSettingStore()
 const { t: $t } = useI18n()
 const menuOpts = computed(() => {
   return [

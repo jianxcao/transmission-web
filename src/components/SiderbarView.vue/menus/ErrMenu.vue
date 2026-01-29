@@ -3,15 +3,16 @@
     :indent="8"
     :options="errorMenuOptions"
     v-model:value="torrentStore.errorStringFilter"
-    :default-expand-all="true"
+    v-model:expanded-keys="settingStore.menuExpandedKeys"
   />
 </template>
 <script setup lang="ts">
 import DismissSquareIcon from '@/assets/icons/dismissSquare.svg?component'
-import { useTorrentStore } from '@/store'
+import { useTorrentStore, useSettingStore } from '@/store'
 import { renderIcon } from '@/utils'
 import { useI18n } from 'vue-i18n'
 const torrentStore = useTorrentStore()
+const settingStore = useSettingStore()
 const { t: $t } = useI18n()
 const errorMenuOptions = computed(() => {
   return [

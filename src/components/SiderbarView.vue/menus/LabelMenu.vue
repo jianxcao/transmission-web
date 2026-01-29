@@ -3,16 +3,17 @@
     :indent="8"
     :options="labelMenuOptions"
     v-model:value="torrentStore.labelsFilter"
-    :default-expand-all="true"
+    v-model:expanded-keys="settingStore.menuExpandedKeys"
   />
 </template>
 <script setup lang="ts">
-import { useTorrentStore } from '@/store'
+import { useTorrentStore, useSettingStore } from '@/store'
 import { renderIcon } from '@/utils'
 import { Pricetag, Pricetags } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 
 const torrentStore = useTorrentStore()
+const settingStore = useSettingStore()
 const { t: $t } = useI18n()
 const labelMenuOptions = computed(() => {
   return [

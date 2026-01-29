@@ -48,7 +48,10 @@ export const useSettingStore = defineStore('setting', () => {
         sessionInterval: 60,
         torrentDetailInterval: 5,
         torrentInterval: 5
-      }
+      },
+      menuExpandedKeys: ['status', 'labels', 'dir'],
+      // 忽略域名中的部分前缀
+      ignoredTrackerPrefixes: ["t", "tr", "tk", "tracker", "bt", "open", "opentracker",]
     },
     localStorage,
     { mergeDefaults: true, deep: true, writeDefaults: true }
@@ -158,6 +161,22 @@ export const useSettingStore = defineStore('setting', () => {
     }
   )
 
+  const changeIgnoredTrackerPrefixes = (prefixes: string[]) => {
+    setting.value.ignoredTrackerPrefixes = prefixes
+  }
+
+  const ignoredTrackerPrefixesReg = computed(() => {
+    return new RegExp(`^(?<prefix>(${setting.value.ignoredTrackerPrefixes.join("|")})\\d*)\\.[^.]+\\.[^.]+$`, "i")
+  })
+
+  // 菜单展开状态
+  const menuExpandedKeys = computed({
+    get: () => setting.value.menuExpandedKeys,
+    set: (val) => {
+      setting.value.menuExpandedKeys = val
+    }
+  })
+
   return {
     setting,
     setTheme,
@@ -175,6 +194,9 @@ export const useSettingStore = defineStore('setting', () => {
     sidebarWidth,
     detailHeight,
     headerHeight,
-    footerHeight
+    footerHeight,
+    changeIgnoredTrackerPrefixes,
+    ignoredTrackerPrefixesReg,
+    menuExpandedKeys
   }
 })
