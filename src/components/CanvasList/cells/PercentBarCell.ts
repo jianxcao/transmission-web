@@ -24,8 +24,9 @@ export default function renderPercentBarCell(
   const sizeWhenDone = Number(row.sizeWhenDone)
   const downloadedEver = Number(row.downloadedEver)
   if (downloadedEver > 0) {
-    percent = Math.max(percent, Math.round((downloadedEver / sizeWhenDone) * 100))
+    percent = Math.max(percent, Math.min(Math.round((downloadedEver / sizeWhenDone) * 100), 100))
   }
+  percent = Math.min(Math.max(percent, 0), 100)
   const percentWidth = Math.max((width * percent) / 100, 0)
   const active = row.rateDownload > 0 || row.rateUpload > 0
   const theme = settingStore.themeVars

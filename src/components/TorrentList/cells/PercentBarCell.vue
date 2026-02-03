@@ -14,9 +14,9 @@ const percentage = computed(() => {
   const sizeWhenDone = Number(props.row.sizeWhenDone)
   const downloadedEver = Number(props.row.downloadedEver)
   if (downloadedEver > 0) {
-    percent = Math.max(percent, Math.round((downloadedEver / sizeWhenDone) * 100))
+    percent = Math.max(percent, Math.min(Math.round((downloadedEver / sizeWhenDone) * 100), 100))
   }
-  return percent
+  return Math.min(Math.max(percent, 0), 100)
 })
 const active = computed(() => {
   return props.row.rateDownload > 0 || props.row.rateUpload > 0

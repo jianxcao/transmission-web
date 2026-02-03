@@ -162,11 +162,13 @@ const render: MobileCellRenderer = ({ ctx, row, state, theme }) => {
   const progressBarX = state.x
   const progressTextX = state.x + progressBarWidth
   const statusTagX = state.x + progressBarWidth + progressTextWidth
+  // 限制 percentDone 在 0-1 范围内
+  const percentDone = Math.min(Math.max(row.percentDone, 0), 1)
 
   // 绘制进度条
   drawProgressBar(
     ctx,
-    row.percentDone,
+    percentDone,
     progressBarX,
     state.y + (MOBILE_PROGRESS_HEIGHT - 4) / 2,
     progressBarWidth,
@@ -175,7 +177,7 @@ const render: MobileCellRenderer = ({ ctx, row, state, theme }) => {
   )
 
   // 绘制百分比文字（在分配的区域内居中）
-  drawProgressText(ctx, row.percentDone, progressTextX, state.y, progressTextWidth, MOBILE_PROGRESS_HEIGHT, theme)
+  drawProgressText(ctx, percentDone, progressTextX, state.y, progressTextWidth, MOBILE_PROGRESS_HEIGHT, theme)
 
   // 绘制状态标签
   const tagY = state.y + (MOBILE_PROGRESS_HEIGHT - 18) / 2 // 18是标签高度，居中对齐
