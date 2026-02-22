@@ -10,12 +10,13 @@
     <div class="mb-2">{{ $t('changeDirDialog.selectedCount', { count: localSelectedKeys.length }) }}</div>
     <n-form :label-placement="labelType" :label-width="labelType === 'top' ? undefined : 120" :show-feedback="false">
       <n-form-item :label="$t('changeDirDialog.newDir')">
-        <n-auto-complete
+        <n-select
           v-model:value="dir"
           :options="downloadDirOptions"
           :placeholder="$t('changeDirDialog.newDirPlaceholder')"
           clearable
-          :get-show="() => true"
+          filterable
+          style="width: 300px"
         />
       </n-form-item>
       <n-form-item>
@@ -50,13 +51,25 @@ const props = defineProps<{
 }>()
 const localSelectedKeys = ref<number[]>([])
 
+// 展平树形目录结构为一维数组
+const flattenDirOptions = (items: any[]): any[] => {
+  const result: any[] = []
+  items.forEach((item) => {
+    if (item.key !== 'all') {
+      result.push({
+        label: item.key, // 使用完整路径作为显示标签
+        value: item.key
+      })
+      if (item.children && item.children.length > 0) {
+        result.push(...flattenDirOptions(item.children))
+      }
+    }
+  })
+  return result
+}
+
 const downloadDirOptions = computed(() =>
-  torrentStore.downloadDirOptions
-    .filter((item: any) => item.key !== 'all')
-    .map((item: any) => ({
-      label: item.label.replace(/（.*?）/, ''),
-      value: item.key
-    }))
+  flattenDirOptions(torrentStore.downloadDirOptions)
 )
 
 watch(

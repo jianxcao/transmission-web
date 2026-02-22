@@ -195,19 +195,31 @@ const bandwidthPriorityOptions = computed(() => [
   { label: $t('priority.high'), value: 1 }
 ])
 
+// 展平树形目录结构为一维数组
+const flattenDirOptions = (items: any[]): any[] => {
+  const result: any[] = []
+  items.forEach((item) => {
+    if (item.key !== 'all') {
+      result.push({
+        label: item.key, // 使用完整路径作为显示标签
+        value: item.key
+      })
+      if (item.children && item.children.length > 0) {
+        result.push(...flattenDirOptions(item.children))
+      }
+    }
+  })
+  return result
+}
+
 const downloadDirOptions = computed(() =>
-  torrentStore.downloadDirOptions
-    .filter((item: any) => item.key !== 'all')
-    .map((item: any) => ({
-      label: item.label.replace(/（.*?）/, ''),
-      value: item.key
-    }))
+  flattenDirOptions(torrentStore.downloadDirOptions)
 )
 const labelsOptions = computed(() =>
   torrentStore.labelsOptions
     .filter((item: any) => item.key !== 'all' && item.key !== 'noLabels')
     .map((item: any) => ({
-      label: item.label.replace(/（.*?）/, ''),
+      label: typeof item.label === 'string' ? item.label.replace(/（.*?）/, '') : item.key,
       value: item.key
     }))
 )

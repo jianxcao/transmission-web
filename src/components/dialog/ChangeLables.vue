@@ -51,7 +51,7 @@ const labelsOptions = computed(() =>
   torrentStore.labelsOptions
     .filter((item: any) => item.key !== 'all' && item.key !== 'noLabels')
     .map((item: any) => ({
-      label: item.label.replace(/（.*?）/, ''),
+      label: typeof item.label === 'string' ? item.label.replace(/（.*?）/, '') : item.key,
       value: item.key
     }))
 )
