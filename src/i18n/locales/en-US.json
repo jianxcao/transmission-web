@@ -240,6 +240,24 @@
     "modifySuccess": "Tracker modified successfully",
     "modifyFailed": "Failed to modify tracker"
   },
+  "replaceTracker": {
+    "title": "Batch Replace Tracker",
+    "description": "Enter the tracker URL to search and replace across all matching torrents",
+    "searchTracker": "Search Tracker",
+    "searchPlaceholder": "Enter tracker URL to search",
+    "matchedTorrents": "Matched Torrents",
+    "noMatchedTorrents": "No matching torrents found",
+    "replaceWith": "Replace With",
+    "replacePlaceholder": "Enter the new tracker URL",
+    "replaceButton": "Replace {count} Torrents",
+    "replaceSuccess": "Successfully replaced tracker for {count} torrents",
+    "replacePartial": "Replacement completed: {success} succeeded, {fail} failed",
+    "replaceFailed": "Failed to replace tracker"
+  },
+  "toolsMenu": {
+    "title": "Tools",
+    "replaceTracker": "Batch Replace Tracker"
+  },
   "createTorrentDialog": {
     "title": "Create Torrent",
     "selectSource": "Select Source",
@@ -380,7 +398,7 @@
     "changeTracker": "Change Tracker",
     "other": "Modify Speed Limits and Restrictions",
     "showCheckbox": "Enable Selection Mode",
-      "hideCheckbox": "Disable Selection Mode"
+    "hideCheckbox": "Disable Selection Mode"
   },
   "columns": {
     "name": "Name",

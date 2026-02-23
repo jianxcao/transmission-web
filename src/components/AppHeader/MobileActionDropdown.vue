@@ -21,8 +21,8 @@ import {
   StarSharp,
   Magnet,
   CreateOutline,
-  Rocket,
-  RocketOutline
+  FlashOutline,
+  SwapHorizontalOutline
 } from '@vicons/ionicons5'
 import { useThemeVars } from 'naive-ui'
 import { priorityOptions } from './priority'
@@ -103,7 +103,6 @@ const mobileActionOptions = computed(() => [
     disabled: !isOk.value,
     icon: renderIcon(Pricetags, theme.value.infoColor)
   },
-
   {
     label: $t('common.priority'),
     key: 'priority',
@@ -119,9 +118,20 @@ const mobileActionOptions = computed(() => [
     key: 'd3'
   },
   {
-    label: altSpeedEnabled.value ? $t('bandwidthSettings.disableBackupBandwidth') : $t('bandwidthSettings.enableBackupBandwidth'),
+    label: altSpeedEnabled.value
+      ? $t('bandwidthSettings.disableBackupBandwidth')
+      : $t('bandwidthSettings.enableBackupBandwidth'),
     key: 'toggleAltSpeed',
-    icon: renderIcon(altSpeedEnabled.value ? Rocket : RocketOutline, altSpeedEnabled.value ? theme.value.warningColor : theme.value.primaryColor)
+    icon: renderIcon(FlashOutline, altSpeedEnabled.value ? theme.value.warningColor : theme.value.textColorBase)
+  },
+  {
+    type: 'divider',
+    key: 'd4'
+  },
+  {
+    label: $t('toolsMenu.replaceTracker'),
+    key: 'replaceTracker',
+    icon: renderIcon(SwapHorizontalOutline, theme.value.infoColor)
   }
 ])
 

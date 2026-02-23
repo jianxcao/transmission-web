@@ -240,6 +240,24 @@
     "modifySuccess": "tracker修改成功",
     "modifyFailed": "tracker修改失败"
   },
+  "replaceTracker": {
+    "title": "批量替换 Tracker",
+    "description": "输入要搜索的 Tracker 地址，批量替换所有匹配种子的 Tracker",
+    "searchTracker": "搜索 Tracker",
+    "searchPlaceholder": "输入要查找的 Tracker URL",
+    "matchedTorrents": "匹配的种子",
+    "noMatchedTorrents": "未找到匹配的种子",
+    "replaceWith": "替换为",
+    "replacePlaceholder": "输入新的 Tracker URL",
+    "replaceButton": "替换 {count} 个种子",
+    "replaceSuccess": "已成功替换 {count} 个种子的 Tracker",
+    "replacePartial": "替换完成：成功 {success} 个，失败 {fail} 个",
+    "replaceFailed": "替换失败"
+  },
+  "toolsMenu": {
+    "title": "工具",
+    "replaceTracker": "批量替换 Tracker"
+  },
   "createTorrentDialog": {
     "title": "创建种子",
     "selectSource": "选择来源",
@@ -380,7 +398,7 @@
     "changeTracker": "修改tracker",
     "other": "修改限速等限制属性",
     "showCheckbox": "开启选择模式",
-      "hideCheckbox": "关闭选择模式"
+    "hideCheckbox": "关闭选择模式"
   },
   "columns": {
     "name": "名称",
