@@ -99,6 +99,8 @@ declare module 'vue' {
     SettingsContent: typeof import('./src/components/dialog/settings/SettingsContent.vue')['default']
     SettingsDialog: typeof import('./src/components/dialog/settings/SettingsDialog.vue')['default']
     SidebarView: typeof import('./src/components/SiderbarView.vue/SidebarView.vue')['default']
+    StatsDialog: typeof import('./src/components/dialog/StatsDialog.vue')['default']
+    StatsMenu: typeof import('./src/components/SiderbarView.vue/menus/StatsMenu.vue')['default']
     StatusBar: typeof import('./src/components/StatusBar.vue')['default']
     StatusCell: typeof import('./src/components/TorrentList/cells/StatusCell.vue')['default']
     StatusMenu: typeof import('./src/components/SiderbarView.vue/menus/StatusMenu.vue')['default']
