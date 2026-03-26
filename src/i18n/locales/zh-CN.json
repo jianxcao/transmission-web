@@ -52,6 +52,7 @@
     "torrentFile": "种子文件",
     "magnetLink": "磁力链接",
     "selectFile": "选择种子文件",
+    "selectedFiles": "已选择 {count} 个种子文件",
     "magnetPlaceholder": "多个磁力链接用换行分隔",
     "downloadDir": "下载目录",
     "downloadDirPlaceholder": "请选择或输入下载目录",
@@ -61,12 +62,16 @@
     "priorityPlaceholder": "请选择优先级",
     "sequentialDownload": "顺序下载",
     "addSuccess": "添加成功",
+    "batchAddSuccess": "成功添加 {count} 个种子",
+    "batchAddResult": "已添加 {success} 个，{duplicate} 个已存在，{failed} 个失败",
     "addFailed": "添加失败",
     "torrentExists": "种子已存在",
     "pleaseSelectFile": "请先选择种子文件",
+    "pleaseSelectFiles": "请先选择种子文件",
     "pleaseSelectDir": "请选择下载目录",
     "pleaseInputMagnet": "请输入磁力链接",
-    "readFileFailed": "读取文件失败"
+    "readFileFailed": "读取文件失败",
+    "readFileFailedCount": "{count} 个文件读取失败"
   },
   "deleteDialog": {
     "title": "删除种子确认",

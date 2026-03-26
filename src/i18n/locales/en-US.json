@@ -51,7 +51,8 @@
     "title": "Add Torrent",
     "torrentFile": "Torrent File",
     "magnetLink": "Magnet Link",
-    "selectFile": "Select Torrent File",
+    "selectFile": "Select Torrent Files",
+    "selectedFiles": "{count} torrent files selected",
     "magnetPlaceholder": "Multiple magnet links separated by line breaks",
     "downloadDir": "Download Directory",
     "downloadDirPlaceholder": "Select or enter download directory",
@@ -61,12 +62,16 @@
     "priorityPlaceholder": "Select priority",
     "sequentialDownload": "Sequential Download",
     "addSuccess": "Added successfully",
+    "batchAddSuccess": "Added {count} torrents successfully",
+    "batchAddResult": "Added {success}, {duplicate} already existed, {failed} failed",
     "addFailed": "Failed to add",
     "torrentExists": "Torrent already exists",
     "pleaseSelectFile": "Please select torrent file first",
+    "pleaseSelectFiles": "Please select torrent files first",
     "pleaseSelectDir": "Please select download directory",
     "pleaseInputMagnet": "Please enter magnet link",
-    "readFileFailed": "Failed to read file"
+    "readFileFailed": "Failed to read file",
+    "readFileFailedCount": "Failed to read {count} files"
   },
   "deleteDialog": {
     "title": "Delete Torrent Confirmation",
