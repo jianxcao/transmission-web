@@ -177,8 +177,8 @@ onMounted(async () => {
   window.addEventListener('resize', handleResize)
   window.addEventListener('orientationchange', handleResize)
 
-  // torrentStore.startPolling()
-  // statsStore.startPolling()
+  torrentStore.startPolling()
+  statsStore.startPolling()
   await sessionStore.fetchSession()
   await torrentStore.fetchTorrents()
   await statsStore.fetchStats()
