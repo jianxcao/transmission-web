@@ -107,6 +107,16 @@
     "changeSuccess": "标签更改成功",
     "changeFailed": "标签更改失败"
   },
+  "statsDialog": {
+    "title": "数据统计",
+    "cumulative": "累计统计",
+    "currentSession": "当前会话",
+    "uploaded": "已上传",
+    "downloaded": "已下载",
+    "filesAdded": "已添加文件",
+    "sessionCount": "会话次数",
+    "activeTime": "活动时间"
+  },
   "aboutDialog": {
     "title": "关于 Transmission Web",
     "webClient": "Transmission Web 前端",

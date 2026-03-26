@@ -107,6 +107,16 @@
     "changeSuccess": "Labels changed successfully",
     "changeFailed": "Failed to change labels"
   },
+  "statsDialog": {
+    "title": "Statistics",
+    "cumulative": "Cumulative",
+    "currentSession": "Current Session",
+    "uploaded": "Uploaded",
+    "downloaded": "Downloaded",
+    "filesAdded": "Files Added",
+    "sessionCount": "Sessions",
+    "activeTime": "Active Time"
+  },
   "aboutDialog": {
     "title": "About Transmission Web",
     "webClient": "Transmission Web Frontend",

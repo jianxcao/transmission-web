@@ -5,6 +5,7 @@
     <DirMenu />
     <TrackerMenu />
     <ErrMenu />
+    <StatsMenu />
   </aside>
 </template>
 <script setup lang="ts">
