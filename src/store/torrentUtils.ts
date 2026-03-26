@@ -107,6 +107,8 @@ export const mapToOptions = (map: Map<string, IMenuItem>, total: number) => {
   ]
 }
 
+const normalizeTorrentSearchText = (value: string) => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+
 // 是否可以过滤这个种子
 export const isFilterTorrents = function (
   t: Torrent,
@@ -119,9 +121,10 @@ export const isFilterTorrents = function (
 ) {
   // === 2. 同时进行过滤判断 ===
   let shouldInclude = true
+  const normalizedSearch = normalizeTorrentSearchText(search.value)
 
   // 搜索过滤
-  if (search.value && !t.name.includes(search.value)) {
+  if (normalizedSearch && !normalizeTorrentSearchText(t.name).includes(normalizedSearch)) {
     shouldInclude = false
   }
 

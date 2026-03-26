@@ -1,6 +1,6 @@
 {
   "name": "transmission-web",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "🚀 现代化的 Transmission BitTorrent 客户端 Web 界面，基于 Vue 3 + TypeScript 构建，支持响应式设计、虚拟滚动和智能过滤功能",
   "type": "module",
   "keywords": [
