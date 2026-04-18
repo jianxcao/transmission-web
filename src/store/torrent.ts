@@ -6,6 +6,8 @@ import { useSettingStore } from '@/store/setting'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import {
+  buildDirMenuList,
+  buildDirMenuTree,
   detailFilterOptions,
   isFilterTorrents,
   mapToOptions,
@@ -130,6 +132,9 @@ export const useTorrentStore = defineStore('torrent', () => {
     const mapFilterTorrentsIndex: Record<number, number> = {}
     const mapTorrentsIndex: Record<number, number> = {}
 
+    // 目录菜单当前模式（read once，使其参与依赖收集）
+    const dirMenuMode = settingStore.setting.dirMenuMode
+
     // 一次循环完成所有计算：统计 + 过滤
     let filteredIndex = 0
     torrents.value.forEach((t, idx) => {
@@ -138,7 +143,16 @@ export const useTorrentStore = defineStore('torrent', () => {
       detailFilterOptions(t, labelsSet, trackerSet, errorStringSet, downloadDirSet, statusSet)
       // 如果通过所有过滤条件，加入结果数组
       if (
-        isFilterTorrents(t, search, statusFilter, labelsFilter, trackerFilter, errorStringFilter, downloadDirFilter)
+        isFilterTorrents(
+          t,
+          search,
+          statusFilter,
+          labelsFilter,
+          trackerFilter,
+          errorStringFilter,
+          downloadDirFilter,
+          dirMenuMode
+        )
       ) {
         filtered.push(t)
         mapFilterTorrentsIndex[t.id] = filteredIndex++
@@ -162,7 +176,10 @@ export const useTorrentStore = defineStore('torrent', () => {
     if (!errorStringSet.get(errorStringFilter.value)) {
       errorStringFilter.value = 'all'
     }
-    if (!downloadDirSet.get(downloadDirFilter.value)) {
+    // 根据用户配置生成目录菜单：扁平 (list) 或 树形 (tree)
+    // validKeys 用于校验当前过滤值是否仍然有效（数据/模式变化后失效则重置）
+    const dirMenu = dirMenuMode === 'tree' ? buildDirMenuTree(downloadDirSet) : buildDirMenuList(downloadDirSet)
+    if (!dirMenu.validKeys.has(downloadDirFilter.value)) {
       downloadDirFilter.value = 'all'
     }
     const options = {
@@ -170,6 +187,7 @@ export const useTorrentStore = defineStore('torrent', () => {
       trackerOptions: mapToOptions(trackerSet, torrents.value.length),
       errorStringOptions: mapToOptions(errorStringSet, torrents.value.length),
       downloadDirOptions: mapToOptions(downloadDirSet, torrents.value.length),
+      downloadDirMenuOptions: dirMenu.options,
       statusOptions: mapToOptions(statusSet, torrents.value.length)
     }
     return {
@@ -258,6 +276,7 @@ export const useTorrentStore = defineStore('torrent', () => {
     trackerOptions: computed(() => options.value.trackerOptions),
     errorStringOptions: computed(() => options.value.errorStringOptions),
     downloadDirOptions: computed(() => options.value.downloadDirOptions),
+    downloadDirMenuOptions: computed(() => options.value.downloadDirMenuOptions),
     statusOptions: computed(() => options.value.statusOptions),
     fetchTorrents,
     mapSelectedKeys,

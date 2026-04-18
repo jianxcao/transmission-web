@@ -167,6 +167,7 @@ const formInit = () => {
   sessionForm.value['script-torrent-done-filename'] = session.value?.['script-torrent-done-filename'] || ''
   sessionForm.value['script-torrent-done-enabled'] = !!session.value?.['script-torrent-done-enabled']
   sessionForm.value['single-line'] = !!settingStore.setting.singleLine
+  sessionForm.value['dir-menu-mode'] = settingStore.setting.dirMenuMode || 'list'
   sessionForm.value['default-trackers'] =
     session.value?.['default-trackers'] || settingStore.setting.defaultTrackers.join('\n')
 }
@@ -190,7 +191,11 @@ async function onSave() {
       settingStore.setPolling(pollingForm.value)
     }
     settingStore.setting.singleLine = !!sessionForm.value['single-line']
-    await rpc.sessionSet(omit(sessionForm.value, ['single-line']))
+    const dirMenuMode = sessionForm.value['dir-menu-mode']
+    if (dirMenuMode === 'tree' || dirMenuMode === 'list') {
+      settingStore.setting.dirMenuMode = dirMenuMode
+    }
+    await rpc.sessionSet(omit(sessionForm.value, ['single-line', 'dir-menu-mode']))
     message.success($t('settings.saveSuccess'))
     emit('save-success')
   } catch {

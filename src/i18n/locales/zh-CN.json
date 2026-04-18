@@ -244,6 +244,10 @@
   "otherSettings": {
     "title": "其他设置",
     "singleLine": "单行显示",
+    "dirMenuMode": "目录菜单展示模式",
+    "dirMenuModeList": "列表",
+    "dirMenuModeTree": "目录",
+    "dirMenuModeHint": "列表：扁平展示所有下载目录；目录：按层级折叠，可手动展开子目录。",
     "enableScript": "启用种子完成脚本",
     "scriptPlaceholder": "是否启用种子完成脚本",
     "defaultTrackers": "默认tracker列表",

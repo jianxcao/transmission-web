@@ -244,6 +244,10 @@
   "otherSettings": {
     "title": "Other Settings",
     "singleLine": "Single Line Display",
+    "dirMenuMode": "Directory Menu Mode",
+    "dirMenuModeList": "List",
+    "dirMenuModeTree": "Tree",
+    "dirMenuModeHint": "List: flat view of all download directories. Tree: collapse by levels and expand subdirectories manually.",
     "enableScript": "Enable Torrent Completion Script",
     "scriptPlaceholder": "Whether to enable torrent completion script",
     "defaultTrackers": "Default Tracker List",
