@@ -97,62 +97,136 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
+        shell: bash
         run: |
-          # 获取版本号
+          set -e
+
+          # ---------- 版本号 ----------
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="${{ github.event.inputs.version }}"
+            # workflow_dispatch 触发时 HEAD 上还没有新 tag，上一个 tag 就是最近的 tag
+            PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
           else
             VERSION=${GITHUB_REF#refs/tags/}
-          fi
-
-          # 生成变更日志
-          if [ "${{ github.event_name }}" = "push" ]; then
-            # 获取上一个标签
+            # tag push 触发时 HEAD 已经在新 tag 上，需要回退一步
             PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
-
-            if [ -n "$PREVIOUS_TAG" ]; then
-              CHANGELOG=$(git log --pretty=format:"- %s" ${PREVIOUS_TAG}..HEAD)
-            else
-              CHANGELOG=$(git log --pretty=format:"- %s" --reverse)
-            fi
-          else
-            CHANGELOG="- 手动发布版本"
           fi
 
-          # 创建 release notes
-          cat > release_notes.md << EOF
-          ## 版本 $VERSION 发布
+          REPO_URL="https://github.com/${{ github.repository }}"
 
-          ### 更新内容
-          $CHANGELOG
+          if [ -n "$PREVIOUS_TAG" ]; then
+            RANGE="${PREVIOUS_TAG}..HEAD"
+            COMPARE_LINE="**完整对比**: [\`${PREVIOUS_TAG}...v${VERSION}\`](${REPO_URL}/compare/${PREVIOUS_TAG}...v${VERSION})"
+          else
+            RANGE="HEAD"
+            COMPARE_LINE="首个版本"
+          fi
 
-          ### 下载
-          - 完整包: transmission-web-${VERSION}.zip
+          echo "Generating changelog for range: $RANGE"
 
-          ### 安装说明
-          1. 下载 transmission-web-${VERSION}.zip
-          2. 解压到一个目录下
-          3. 配置 Transmission docker的TRANSMISSION_WEB_HOME为该目录
-          4. 访问 Web 界面
+          # ---------- 按 Conventional Commit 类型分组 ----------
+          # 输出格式: "<type>|<scope>|<subject>|<short hash>"
+          ALL_COMMITS=$(git log --no-merges --pretty=format:'%s|%h' $RANGE || true)
 
-          ### 构建信息
-          - 构建时间: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          - 提交: ${{ github.sha }}
-          - 分支: ${{ github.ref }}
-          EOF
+          extract_section() {
+            local pattern="$1"
+            echo "$ALL_COMMITS" | awk -F'|' -v p="$pattern" '
+              {
+                full=$1; hash=$2
+                if (match(full, p)) {
+                  # 去掉前缀 (如 "feat:", "fix(scope):", "feat!:")
+                  sub(/^[a-zA-Z]+(\([^)]*\))?!?:[[:space:]]*/, "", full)
+                  printf("- %s ([`%s`](" ENVIRON["REPO_URL"] "/commit/%s))\n", full, hash, hash)
+                }
+              }
+            '
+          }
+          export REPO_URL
 
-          # 输出到 GitHub Actions
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          FEATURES=$(extract_section '^feat(\([^)]*\))?!?:')
+          FIXES=$(extract_section '^fix(\([^)]*\))?!?:')
+          PERF=$(extract_section '^perf(\([^)]*\))?!?:')
+          REFACTOR=$(extract_section '^refactor(\([^)]*\))?!?:')
+          DOCS=$(extract_section '^docs(\([^)]*\))?!?:')
+          STYLE=$(extract_section '^style(\([^)]*\))?!?:')
+          TEST=$(extract_section '^test(\([^)]*\))?!?:')
+          BUILD=$(extract_section '^(build|ci)(\([^)]*\))?!?:')
+
+          # 其它（不匹配 conventional commit 前缀，且不是 chore/release/version 提交）
+          OTHERS=$(echo "$ALL_COMMITS" | awk -F'|' '
+            {
+              full=$1; hash=$2
+              if (full ~ /^(feat|fix|perf|refactor|docs|style|test|build|ci|chore|release)(\([^)]*\))?!?:/) next
+              if (tolower(full) ~ /^(release|bump|prepare release|version)/) next
+              printf("- %s ([`%s`](" ENVIRON["REPO_URL"] "/commit/%s))\n", full, hash, hash)
+            }
+          ')
+
+          # ---------- 拼装 changelog ----------
+          CHANGELOG=""
+          append_section() {
+            local title="$1" content="$2"
+            if [ -n "$content" ]; then
+              CHANGELOG="${CHANGELOG}#### ${title}"$'\n'"${content}"$'\n\n'
+            fi
+          }
+
+          append_section "✨ 新功能"   "$FEATURES"
+          append_section "🐛 问题修复" "$FIXES"
+          append_section "⚡ 性能优化" "$PERF"
+          append_section "♻️ 代码重构" "$REFACTOR"
+          append_section "📝 文档"     "$DOCS"
+          append_section "💄 样式"     "$STYLE"
+          append_section "✅ 测试"     "$TEST"
+          append_section "🔧 构建/CI"  "$BUILD"
+          append_section "📦 其它变更" "$OTHERS"
+
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="- 无显著代码变更"$'\n'
+          fi
+
+          # ---------- 写入 release notes ----------
+          {
+            echo "## 版本 v${VERSION}"
+            echo ""
+            echo "### 更新内容"
+            echo ""
+            printf "%s" "$CHANGELOG"
+            echo "${COMPARE_LINE}"
+            echo ""
+            echo "### 下载"
+            echo "- 完整包: \`transmission-web-${VERSION}.zip\`"
+            echo ""
+            echo "### 安装说明"
+            echo "1. 下载 \`transmission-web-${VERSION}.zip\`"
+            echo "2. 解压到一个目录下"
+            echo "3. 配置 Transmission docker 的 \`TRANSMISSION_WEB_HOME\` 为该目录"
+            echo "4. 访问 Web 界面"
+            echo ""
+            echo "### 构建信息"
+            echo "- 构建时间: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            echo "- 提交: \`${{ github.sha }}\`"
+          } > release_notes.md
+
+          echo "----- release_notes.md -----"
+          cat release_notes.md
+          echo "----------------------------"
+
+          {
+            echo "notes<<RELEASE_NOTES_EOF"
+            cat release_notes.md
+            echo "RELEASE_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.event.inputs.version) || github.ref_name }}
           files: transmission-web-*.zip
           body: ${{ steps.release_notes.outputs.notes }}
           draft: false
-          prerelease: ${{ contains(github.ref, '-') }}
+          prerelease: ${{ contains(github.event.inputs.version, '-') || contains(github.ref, '-') }}
           generate_release_notes: false # 使用我们自定义的 release notes
           token: ${{ secrets.GITHUB_TOKEN }}
 

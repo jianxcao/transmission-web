@@ -39,6 +39,7 @@
     "lint": "eslint . --ext .ts,.vue --fix",
     "lint:fix": "eslint . --ext .ts,.vue --fix",
     "release": "bash scripts/release-github.sh",
+    "release:local": "bash scripts/release-local.sh",
     "release:check": "bash scripts/check-env.sh",
     "build:prod": "bash scripts/build.sh"
   },

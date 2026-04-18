@@ -4,6 +4,20 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 1.2.3). 留空则按当前 ref 自动判定'
+        required: false
+        default: ''
+      tags_mode:
+        description: '推送哪些 tag'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - both     # 同时推送版本号和 latest
+          - version  # 只推送 1.2.3 / 1.2
+          - latest   # 只推送 latest
 
 env:
   IMAGE_NAME: transmission-web
@@ -15,11 +29,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 多架构构建：QEMU 装 binfmt 支持跨架构，buildx 用 docker-container driver
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -28,24 +47,98 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 计算工作流要发布的版本号 / 是否预发布 / 是否要打 version tag / latest tag
+      - name: Resolve publish context
+        id: ctx
+        shell: bash
+        run: |
+          set -e
+          MODE="${{ github.event.inputs.tags_mode }}"
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # workflow_dispatch：优先用入参的版本号；没填则尝试 package.json
+            if [ -z "$INPUT_VERSION" ] && [ -f package.json ]; then
+              INPUT_VERSION=$(node -p "require('./package.json').version")
+            fi
+            VERSION="$INPUT_VERSION"
+            [ -z "$MODE" ] && MODE="both"
+          else
+            # tag push：从 ref 解析版本号
+            REF="${GITHUB_REF#refs/tags/}"
+            VERSION="${REF#v}"
+            MODE="both"
+          fi
+
+          if [ -z "$VERSION" ]; then
+            echo "❌ 无法解析版本号"
+            exit 1
+          fi
+
+          # 是否预发布（包含 "-"，例如 1.2.3-beta.1）
+          IS_PRERELEASE=false
+          [[ "$VERSION" == *-* ]] && IS_PRERELEASE=true
+
+          # 决定是否打版本 tag / latest tag
+          PUSH_VERSION=false
+          PUSH_LATEST=false
+          case "$MODE" in
+            version) PUSH_VERSION=true ;;
+            latest)  PUSH_LATEST=true ;;
+            both|*)  PUSH_VERSION=true; PUSH_LATEST=true ;;
+          esac
+
+          # 预发布版本永远不打 latest，也不打 major.minor
+          MAJOR_MINOR=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            PUSH_LATEST=false
+          else
+            MAJOR_MINOR=$(echo "$VERSION" | awk -F. '{print $1"."$2}')
+          fi
+
+          echo "Resolved: version=$VERSION mm=$MAJOR_MINOR mode=$MODE prerelease=$IS_PRERELEASE push_version=$PUSH_VERSION push_latest=$PUSH_LATEST"
+
+          {
+            echo "version=$VERSION"
+            echo "major_minor=$MAJOR_MINOR"
+            echo "is_prerelease=$IS_PRERELEASE"
+            echo "push_version=$PUSH_VERSION"
+            echo "push_latest=$PUSH_LATEST"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          # 标签开关由上一步 Resolve publish context 决定：
+          # - tags_mode=version  -> 1.2.3 + 1.2
+          # - tags_mode=latest   -> latest
+          # - tags_mode=both     -> 三个都打
+          # - 预发布版本：永远不打 latest 和 major.minor
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
+            type=raw,value=${{ steps.ctx.outputs.version }},enable=${{ steps.ctx.outputs.push_version == 'true' }}
+            type=raw,value=${{ steps.ctx.outputs.major_minor }},enable=${{ steps.ctx.outputs.push_version == 'true' && steps.ctx.outputs.major_minor != '' }}
+            type=raw,value=latest,enable=${{ steps.ctx.outputs.push_latest == 'true' }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### 🐳 Docker 推送结果" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 镜像: \`${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tags:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
