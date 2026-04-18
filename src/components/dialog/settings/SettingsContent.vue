@@ -168,6 +168,9 @@ const formInit = () => {
   sessionForm.value['script-torrent-done-enabled'] = !!session.value?.['script-torrent-done-enabled']
   sessionForm.value['single-line'] = !!settingStore.setting.singleLine
   sessionForm.value['dir-menu-mode'] = settingStore.setting.dirMenuMode || 'list'
+  sessionForm.value['enable-download-dir-suggestions'] =
+    settingStore.setting.enableDownloadDirSuggestions !== false
+  sessionForm.value['custom-download-dirs'] = [...(settingStore.setting.customDownloadDirs || [])]
   sessionForm.value['default-trackers'] =
     session.value?.['default-trackers'] || settingStore.setting.defaultTrackers.join('\n')
 }
@@ -195,7 +198,27 @@ async function onSave() {
     if (dirMenuMode === 'tree' || dirMenuMode === 'list') {
       settingStore.setting.dirMenuMode = dirMenuMode
     }
-    await rpc.sessionSet(omit(sessionForm.value, ['single-line', 'dir-menu-mode']))
+    settingStore.setting.enableDownloadDirSuggestions =
+      sessionForm.value['enable-download-dir-suggestions'] !== false
+    const rawCustomDirs = sessionForm.value['custom-download-dirs']
+    const customDirs = Array.isArray(rawCustomDirs)
+      ? Array.from(
+          new Set(
+            rawCustomDirs
+              .map((item: unknown) => (typeof item === 'string' ? item.trim() : ''))
+              .filter((item: string) => Boolean(item))
+          )
+        )
+      : []
+    settingStore.setting.customDownloadDirs = customDirs
+    await rpc.sessionSet(
+      omit(sessionForm.value, [
+        'single-line',
+        'dir-menu-mode',
+        'enable-download-dir-suggestions',
+        'custom-download-dirs'
+      ])
+    )
     message.success($t('settings.saveSuccess'))
     emit('save-success')
   } catch {

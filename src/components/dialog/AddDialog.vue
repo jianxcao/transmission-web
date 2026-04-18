@@ -87,6 +87,7 @@ import { trpc } from '@/api/trpc'
 import { useSessionStore, useTorrentStore } from '@/store'
 import { sleep } from '@/utils'
 import { useIsSmallScreen } from '@/composables/useIsSmallScreen'
+import { useDownloadDirOptions } from '@/composables/useDownloadDirOptions'
 import type { UploadFileInfo } from 'naive-ui'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
@@ -135,14 +136,7 @@ const confirmDisabled = computed(() =>
   props.type === 'file' ? selectedTorrentFiles.value.length === 0 : magnetLinks.value.length === 0
 )
 
-const downloadDirOptions = computed(() =>
-  torrentStore.downloadDirOptions
-    .filter((item: any) => item.key !== 'all')
-    .map((item: any) => ({
-      label: item.label.replace(/（.*?）/, ''),
-      value: item.key
-    }))
-)
+const { downloadDirOptions } = useDownloadDirOptions()
 const labelsOptions = computed(() =>
   torrentStore.labelsOptions
     .filter((item: any) => item.key !== 'all' && item.key !== 'noLabels')

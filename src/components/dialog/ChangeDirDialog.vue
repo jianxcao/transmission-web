@@ -34,6 +34,7 @@ import { useTorrentStore, useSessionStore } from '@/store'
 import { rpc } from '@/api/rpc'
 import { useI18n } from 'vue-i18n'
 import { useIsSmallScreen } from '@/composables/useIsSmallScreen'
+import { useDownloadDirOptions } from '@/composables/useDownloadDirOptions'
 import { getSelectIds } from './utils'
 const isMobile = useIsSmallScreen()
 const labelType = computed(() => (isMobile.value ? 'top' : 'left'))
@@ -50,14 +51,7 @@ const props = defineProps<{
 }>()
 const localSelectedKeys = ref<number[]>([])
 
-const downloadDirOptions = computed(() =>
-  torrentStore.downloadDirOptions
-    .filter((item: any) => item.key !== 'all')
-    .map((item: any) => ({
-      label: item.label.replace(/（.*?）/, ''),
-      value: item.key
-    }))
-)
+const { downloadDirOptions } = useDownloadDirOptions()
 
 watch(
   () => show.value,

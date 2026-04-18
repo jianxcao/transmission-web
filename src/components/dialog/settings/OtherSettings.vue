@@ -15,6 +15,29 @@
           {{ $t('otherSettings.dirMenuModeHint') }}
         </n-text>
       </n-form-item>
+      <n-form-item :label="$t('otherSettings.enableDownloadDirSuggestions')">
+        <div style="width: 100%">
+          <n-switch v-model:value="form['enable-download-dir-suggestions']" />
+          <n-text depth="3" style="font-size: 12px; margin-top: 4px; display: block">
+            {{ $t('otherSettings.enableDownloadDirSuggestionsHint') }}
+          </n-text>
+        </div>
+      </n-form-item>
+      <n-form-item :label="$t('otherSettings.customDownloadDirs')">
+        <div style="width: 100%">
+          <n-dynamic-input
+            v-model:value="form['custom-download-dirs']"
+            :placeholder="$t('otherSettings.customDownloadDirsPlaceholder')"
+            :min="0"
+            show-sort-button
+            preset="input"
+            @create="createCustomDownloadDir"
+          />
+          <n-text depth="3" style="font-size: 12px; margin-top: 4px; display: block">
+            {{ $t('otherSettings.customDownloadDirsHint') }}
+          </n-text>
+        </div>
+      </n-form-item>
       <n-form-item>
         <template #label>
           <n-checkbox v-model:checked="form['script-torrent-done-enabled']">{{
@@ -70,4 +93,7 @@ watchEffect(() => {
 const handleIgnoredPrefixesChange = (value: string[]) => {
   settingStore.changeIgnoredTrackerPrefixes(value)
 }
+
+// n-dynamic-input 默认 create 返回 undefined，这里给一个空字符串占位以便用户填写
+const createCustomDownloadDir = () => ''
 </script>
