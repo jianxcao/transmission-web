@@ -6,6 +6,15 @@
       <n-form-item :label="$t('otherSettings.singleLine')">
         <n-switch v-model:value="form['single-line']" />
       </n-form-item>
+      <n-form-item :label="$t('otherSettings.dirMenuMode')">
+        <n-radio-group v-model:value="form['dir-menu-mode']">
+          <n-radio-button value="list">{{ $t('otherSettings.dirMenuModeList') }}</n-radio-button>
+          <n-radio-button value="tree">{{ $t('otherSettings.dirMenuModeTree') }}</n-radio-button>
+        </n-radio-group>
+        <n-text depth="3" style="font-size: 12px; margin-left: 8px">
+          {{ $t('otherSettings.dirMenuModeHint') }}
+        </n-text>
+      </n-form-item>
       <n-form-item>
         <template #label>
           <n-checkbox v-model:checked="form['script-torrent-done-enabled']">{{

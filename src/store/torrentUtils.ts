@@ -107,6 +107,123 @@ export const mapToOptions = (map: Map<string, IMenuItem>, total: number) => {
   ]
 }
 
+// 目录菜单选项（树形结构）
+export interface IDirMenuOption {
+  key: string
+  label: string
+  count: number
+  children?: IDirMenuOption[]
+}
+
+const lastSegmentOf = (path: string): string => {
+  if (!path) {
+    return ''
+  }
+  const idx = path.lastIndexOf('/')
+  return idx < 0 ? path : path.substring(idx + 1)
+}
+
+// 将扁平的下载目录集合按 `/` 切分构建成树形菜单
+// - 单子节点链路自动合并显示（如 /home/user/downloads 不会逐级展示）
+// - 父节点的数量为自身和所有后代的累计
+// - 同时返回 validKeys 集合，便于校验当前过滤值是否还有效
+export const buildDirMenuTree = (
+  downloadDirSet: Map<string, IMenuItem>
+): { options: IDirMenuOption[]; validKeys: Set<string> } => {
+  interface ITreeNode {
+    fullPath: string
+    count: number
+    totalCount: number
+    children: Map<string, ITreeNode>
+  }
+
+  const root: ITreeNode = { fullPath: '', count: 0, totalCount: 0, children: new Map() }
+
+  for (const [dir, item] of downloadDirSet.entries()) {
+    // 去掉末尾的多余斜杠，保证路径统一
+    const normalized = dir.replace(/\/+$/, '')
+    const parts = normalized.split('/')
+    let cumPath = ''
+    let curNode = root
+    for (let i = 0; i < parts.length; i++) {
+      cumPath = i === 0 ? parts[i] : `${cumPath}/${parts[i]}`
+      let child = curNode.children.get(cumPath)
+      if (!child) {
+        child = { fullPath: cumPath, count: 0, totalCount: 0, children: new Map() }
+        curNode.children.set(cumPath, child)
+      }
+      curNode = child
+    }
+    // 累加 count，避免不同路径归一化后冲突时丢数据
+    curNode.count += item.count
+  }
+
+  // DFS 计算累计数量
+  const computeTotal = (node: ITreeNode): number => {
+    let total = node.count
+    for (const child of node.children.values()) {
+      total += computeTotal(child)
+    }
+    node.totalCount = total
+    return total
+  }
+  computeTotal(root)
+
+  const validKeys = new Set<string>(['all'])
+
+  // 递归转换成 n-menu 选项，遇到「单子节点 + 自身无 count」的链路就合并
+  const toOption = (node: ITreeNode): IDirMenuOption => {
+    let cur = node
+    const labelParts: string[] = [lastSegmentOf(cur.fullPath)]
+    while (cur.children.size === 1 && cur.count === 0) {
+      const onlyChild = cur.children.values().next().value as ITreeNode
+      cur = onlyChild
+      labelParts.push(lastSegmentOf(cur.fullPath))
+    }
+    const segment = labelParts.join('/')
+    // 兜底：根节点 path 为空时，segment 也为空，使用 fullPath
+    const display = segment || cur.fullPath || '/'
+    validKeys.add(cur.fullPath)
+    const children: IDirMenuOption[] = []
+    for (const child of cur.children.values()) {
+      children.push(toOption(child))
+    }
+    const result: IDirMenuOption = {
+      key: cur.fullPath,
+      label: `${display}（${cur.totalCount}）`,
+      count: cur.totalCount
+    }
+    if (children.length > 0) {
+      result.children = children
+    }
+    return result
+  }
+
+  const options: IDirMenuOption[] = []
+  for (const child of root.children.values()) {
+    options.push(toOption(child))
+  }
+
+  return { options, validKeys }
+}
+
+// 扁平的目录菜单（保留原有交互），用于和树形菜单对应统一的数据结构
+export const buildDirMenuList = (
+  downloadDirSet: Map<string, IMenuItem>
+): { options: IDirMenuOption[]; validKeys: Set<string> } => {
+  const validKeys = new Set<string>(['all'])
+  const options: IDirMenuOption[] = []
+  for (const [dir, item] of downloadDirSet.entries()) {
+    validKeys.add(dir)
+    options.push({
+      key: dir,
+      label: `${dir}（${item.count}）`,
+      count: item.count
+    })
+  }
+  return { options, validKeys }
+}
+
 const normalizeTorrentSearchText = (value: string) => value.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
 
 // 是否可以过滤这个种子
@@ -117,7 +234,8 @@ export const isFilterTorrents = function (
   labelsFilter: globalThis.Ref<string, string>,
   trackerFilter: globalThis.Ref<string, string>,
   errorStringFilter: globalThis.Ref<string, string>,
-  downloadDirFilter: globalThis.Ref<string, string>
+  downloadDirFilter: globalThis.Ref<string, string>,
+  dirMenuMode: 'list' | 'tree' = 'list'
 ) {
   // === 2. 同时进行过滤判断 ===
   let shouldInclude = true
@@ -171,13 +289,18 @@ export const isFilterTorrents = function (
   }
 
   // 下载目录过滤
-  if (
-    shouldInclude &&
-    downloadDirFilter.value &&
-    downloadDirFilter.value !== 'all' &&
-    t.downloadDir !== downloadDirFilter.value
-  ) {
-    shouldInclude = false
+  // - tree 模式：前缀匹配（父目录可筛出其下所有子目录的种子）
+  // - list 模式：精确匹配（保留原始扁平菜单的语义）
+  if (shouldInclude && downloadDirFilter.value && downloadDirFilter.value !== 'all') {
+    const filterPath = downloadDirFilter.value
+    const torrentDir = t.downloadDir
+    if (dirMenuMode === 'tree') {
+      if (torrentDir !== filterPath && !torrentDir.startsWith(`${filterPath}/`)) {
+        shouldInclude = false
+      }
+    } else if (torrentDir !== filterPath) {
+      shouldInclude = false
+    }
   }
 
   return shouldInclude
