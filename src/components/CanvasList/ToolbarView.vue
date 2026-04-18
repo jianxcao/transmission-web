@@ -2,6 +2,7 @@
   <div class="toolbar-view">
     <div class="left flex items-center">
       <n-icon
+        v-if="toolbarStore.listType === 'table'"
         :component="toolbarStore.selectMode ? DashCheckedIcon : DashCheckIcon"
         size="20"
         :color="toolbarStore.selectMode ? 'var(--primary-color)' : 'var(--text-color-disabled)'"
