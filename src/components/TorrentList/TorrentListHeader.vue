@@ -8,7 +8,7 @@
     <div
       class="torrent-table-header-cell-checkbox"
       :class="{ 'torrent-table-header-cell-checkbox-sticky': isStickySelectAll }"
-      v-if="isSupportTouch"
+      v-if="toolbarStore.selectMode"
     >
       <n-checkbox
         :checked="torrentStore.selectedKeys.length === torrentStore.filterTorrents.length"
@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { allColumns } from '@/composables/useColumns'
 import { useTorrentStore } from '@/store'
-import { isSupportTouch } from '@/utils/evt'
+import useToolbarStore from '@/components/CanvasList/store/toolbarStore'
 import { CaretDown, CaretUp } from '@vicons/ionicons5'
 import type { AnyTouchEvent } from 'any-touch'
 import type { CSSProperties } from 'vue'
@@ -67,10 +67,11 @@ withDefaults(
 )
 // const emit = defineEmits(['contextmenu']) // 不再需要
 const torrentStore = useTorrentStore()
+const toolbarStore = useToolbarStore()
 const visibleColumns = computed(() => torrentStore.visibleColumns)
 const tableMinWidth = computed(() => torrentStore.tableMinWidth)
 const width = computed(() => {
-  return (isSupportTouch ? tableMinWidth.value + 24 : tableMinWidth.value) + 'px'
+  return (toolbarStore.selectMode ? tableMinWidth.value + 24 : tableMinWidth.value) + 'px'
 })
 const minColumnWidth = computed(() => {
   return allColumns.reduce(
