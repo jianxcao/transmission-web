@@ -124,8 +124,12 @@ const lastSegmentOf = (path: string): string => {
 }
 
 // 将扁平的下载目录集合按 `/` 切分构建成树形菜单
-// - 单子节点链路自动合并显示（如 /home/user/downloads 不会逐级展示）
-// - 父节点的数量为自身和所有后代的累计
+// - 严格按真实层级展开，每一级目录都是单独的可点击/可折叠节点
+//   （即使该层级只有一个子节点也不合并，符合「先出来一级，再手动点开
+//    二级、三级」的诉求）
+// - 父节点数量为自身 + 所有后代的累计
+// - 绝对路径前导 `/` 产生的空根节点自动跳过，其子节点直接作为顶层项
+//   （并在 label 上保留 `/` 作为视觉提示）
 // - 同时返回 validKeys 集合，便于校验当前过滤值是否还有效
 export const buildDirMenuTree = (
   downloadDirSet: Map<string, IMenuItem>
@@ -171,27 +175,29 @@ export const buildDirMenuTree = (
 
   const validKeys = new Set<string>(['all'])
 
-  // 递归转换成 n-menu 选项，遇到「单子节点 + 自身无 count」的链路就合并
-  const toOption = (node: ITreeNode): IDirMenuOption => {
-    let cur = node
-    const labelParts: string[] = [lastSegmentOf(cur.fullPath)]
-    while (cur.children.size === 1 && cur.count === 0) {
-      const onlyChild = cur.children.values().next().value as ITreeNode
-      cur = onlyChild
-      labelParts.push(lastSegmentOf(cur.fullPath))
+  // 计算节点相对父节点的 label：
+  // - 如果父节点是空根（绝对路径根），label 直接用 fullPath（带前导 `/`）
+  // - 否则只取末段 segment
+  // - 兜底：fullPath 为空（极端情况）回退为 `/`
+  const computeSegment = (fullPath: string, parentPath: string): string => {
+    if (parentPath === '' && fullPath !== '') {
+      return fullPath
     }
-    const segment = labelParts.join('/')
-    // 兜底：根节点 path 为空时，segment 也为空，使用 fullPath
-    const display = segment || cur.fullPath || '/'
-    validKeys.add(cur.fullPath)
+    return lastSegmentOf(fullPath) || fullPath || '/'
+  }
+
+  // 递归转换成 n-menu 选项；parentPath 是上一级真实显示出来的节点 path
+  const toOption = (node: ITreeNode, parentPath: string): IDirMenuOption => {
+    validKeys.add(node.fullPath)
+    const segment = computeSegment(node.fullPath, parentPath)
     const children: IDirMenuOption[] = []
-    for (const child of cur.children.values()) {
-      children.push(toOption(child))
+    for (const child of node.children.values()) {
+      children.push(toOption(child, node.fullPath))
     }
     const result: IDirMenuOption = {
-      key: cur.fullPath,
-      label: `${display}（${cur.totalCount}）`,
-      count: cur.totalCount
+      key: node.fullPath,
+      label: `${segment}（${node.totalCount}）`,
+      count: node.totalCount
     }
     if (children.length > 0) {
       result.children = children
@@ -201,7 +207,14 @@ export const buildDirMenuTree = (
 
   const options: IDirMenuOption[] = []
   for (const child of root.children.values()) {
-    options.push(toOption(child))
+    // 跳过绝对路径前导 `/` 形成的空根节点，把它的子节点直接提到顶层
+    if (child.fullPath === '' && child.count === 0 && child.children.size > 0) {
+      for (const grandchild of child.children.values()) {
+        options.push(toOption(grandchild, ''))
+      }
+    } else {
+      options.push(toOption(child, ''))
+    }
   }
 
   return { options, validKeys }
