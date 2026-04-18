@@ -1,10 +1,5 @@
 <template>
-  <div
-    class="resizer-line"
-    @mousedown="onResizeMouseDown"
-    @touchstart="onResizeTouchStart"
-    :style="{ width: lineWidth + 'px' }"
-  ></div>
+  <div class="resizer-line" @pointerdown="onResizePointerDown" :style="{ width: lineWidth + 'px' }"></div>
 </template>
 
 <script setup lang="ts">
@@ -21,11 +16,7 @@ const props = withDefaults(
   }
 )
 const containerWidth = defineModel<number>('containerWidth', { required: true })
-const { onResizeMouseDown, onResizeTouchStart } = useResize(
-  containerWidth,
-  props.minContainerWidth,
-  props.maxContainerWidth
-)
+const { onResizePointerDown } = useResize(containerWidth, props.minContainerWidth, props.maxContainerWidth)
 </script>
 
 <style lang="less" scoped>
@@ -36,6 +27,11 @@ const { onResizeMouseDown, onResizeTouchStart } = useResize(
   transition: background 0.2s;
   height: 100%;
   z-index: 10;
+  // 让浏览器把所有方向的拖动都交给我们处理，避免触屏滚动抢占事件
+  touch-action: none;
+  -ms-touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   &:hover,
   &.active {
     background-color: var(--primary-color);

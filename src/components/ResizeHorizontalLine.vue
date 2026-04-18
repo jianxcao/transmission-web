@@ -1,5 +1,5 @@
 <template>
-  <div class="resizer-horizontal" @mousedown="onResizeMouseDown" @touchstart="onResizeTouchStart"></div>
+  <div class="resizer-horizontal" @pointerdown="onResizePointerDown"></div>
 </template>
 
 <script setup lang="ts">
@@ -14,11 +14,7 @@ const props = withDefaults(
 )
 
 const containerHeight = defineModel<number>('containerHeight', { required: true })
-const { onResizeMouseDown, onResizeTouchStart } = useVerticalResize(
-  containerHeight,
-  props.minContainerHeight,
-  props.maxContainerHeight
-)
+const { onResizePointerDown } = useVerticalResize(containerHeight, props.minContainerHeight, props.maxContainerHeight)
 </script>
 
 <style scoped lang="less">
@@ -29,6 +25,11 @@ const { onResizeMouseDown, onResizeTouchStart } = useVerticalResize(
   transition: background 0.2s;
   width: 100%;
   z-index: 10;
+  // 让浏览器把所有方向的拖动都交给我们处理，避免触屏滚动抢占事件
+  touch-action: none;
+  -ms-touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .resizer-horizontal:hover,
 .resizer-horizontal.active {

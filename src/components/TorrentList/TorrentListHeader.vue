@@ -37,10 +37,7 @@
         <div
           v-if="colIdx < visibleColumns.length"
           class="col-resizer"
-          @mousedown="onResizerMouseDown($event, col)"
-          @touchstart="onResizerTouchStart($event, col)"
-          @touchmove="onResizerTouchMove($event)"
-          @touchend="onResizerTouchEnd($event)"
+          @pointerdown="onResizerPointerDown($event, col)"
         ></div>
       </div>
     </div>
@@ -99,99 +96,61 @@ const showColumnMenu = defineModel<boolean>('showHeaderMenu', { default: false }
 const columnMenuX = ref(0)
 const columnMenuY = ref(0)
 
-function onResizerTouchStart(e: TouchEvent, col: { key: string; width: number }) {
+// 使用 Pointer Events 统一处理鼠标 / 触屏 / 触控笔，避免在
+// navigator.maxTouchPoints > 0 的混合设备上鼠标事件被误屏蔽
+function onResizerPointerDown(e: PointerEvent, col: { key: string; width: number }) {
+  if (e.button !== 0 && e.pointerType === 'mouse') {
+    return
+  }
   e.preventDefault()
   e.stopPropagation()
-  if (e.touches.length !== 1) {
-    return
-  }
-  const dom = e.target as HTMLElement
+  const dom = e.currentTarget as HTMLElement
   dom.classList.add('active')
-  resizing.value = true
-  resizeColKey.value = col.key
-  startX.value = e.touches[0].clientX
-  startWidth.value = col.width
-  if (headerRef.value) {
-    headerLeft.value = headerRef.value.getBoundingClientRect().left
-  } else {
-    headerLeft.value = 0
-  }
-  resizeLineX.value = e.touches[0].clientX - headerLeft.value
-  document.body.style.cursor = 'col-resize'
-}
-
-function onResizerTouchMove(e: TouchEvent) {
-  if (!resizing.value || e.touches.length !== 1) {
-    return
-  }
-  resizeLineX.value = e.touches[0].clientX - headerLeft.value
-  const touch = e.changedTouches[0]
-  const delta = touch.clientX - startX.value
-  const newWidth = Math.max(getMinWidth(resizeColKey.value), startWidth.value + delta)
-  if (resizeColKey.value) {
-    torrentStore.updateColumnWidth(resizeColKey.value, newWidth)
-  }
-}
-
-function onResizerTouchEnd(e: TouchEvent) {
-  if (!resizing.value) {
-    return
-  }
-  const dom = e.target as HTMLElement
-  dom.classList.remove('active')
-  const touch = e.changedTouches[0]
-  const delta = touch.clientX - startX.value
-  const newWidth = Math.max(getMinWidth(resizeColKey.value), startWidth.value + delta)
-  if (resizeColKey.value) {
-    torrentStore.updateColumnWidth(resizeColKey.value, newWidth)
-  }
-  resizing.value = false
-  resizeColKey.value = null
-  document.body.style.cursor = ''
-}
-
-function onResizerMouseDown(e: MouseEvent, col: { key: string; width: number }) {
   resizing.value = true
   resizeColKey.value = col.key
   startX.value = e.clientX
   startWidth.value = col.width
-  if (headerRef.value) {
-    headerLeft.value = headerRef.value.getBoundingClientRect().left
-  } else {
-    headerLeft.value = 0
-  }
+  headerLeft.value = headerRef.value ? headerRef.value.getBoundingClientRect().left : 0
   resizeLineX.value = e.clientX - headerLeft.value
   document.body.style.cursor = 'col-resize'
-  window.addEventListener('mousemove', onResizerMouseMove)
-  window.addEventListener('mouseup', onResizerMouseUp)
-}
 
-function onResizerMouseMove(e: MouseEvent) {
-  if (!resizing.value) {
-    return
+  const pointerId = e.pointerId
+  try {
+    dom.setPointerCapture(pointerId)
+  } catch {
+    // 忽略不支持的浏览器
   }
-  resizeLineX.value = e.clientX - headerLeft.value
-  const delta = e.clientX - startX.value
-  const newWidth = Math.max(getMinWidth(resizeColKey.value), startWidth.value + delta)
-  if (resizeColKey.value) {
-    torrentStore.updateColumnWidth(resizeColKey.value, newWidth)
-  }
-}
 
-function onResizerMouseUp(e: MouseEvent) {
-  if (!resizing.value) {
-    return
+  function onMove(evt: PointerEvent) {
+    if (!resizing.value || evt.pointerId !== pointerId) {
+      return
+    }
+    resizeLineX.value = evt.clientX - headerLeft.value
+    const delta = evt.clientX - startX.value
+    const newWidth = Math.max(getMinWidth(resizeColKey.value), startWidth.value + delta)
+    if (resizeColKey.value) {
+      torrentStore.updateColumnWidth(resizeColKey.value, newWidth)
+    }
   }
-  const delta = e.clientX - startX.value
-  const newWidth = Math.max(getMinWidth(resizeColKey.value), startWidth.value + delta)
-  if (resizeColKey.value) {
-    torrentStore.updateColumnWidth(resizeColKey.value, newWidth)
+
+  function cleanup() {
+    dom.classList.remove('active')
+    resizing.value = false
+    resizeColKey.value = null
+    document.body.style.cursor = ''
+    try {
+      dom.releasePointerCapture(pointerId)
+    } catch {
+      // 忽略
+    }
+    dom.removeEventListener('pointermove', onMove)
+    dom.removeEventListener('pointerup', cleanup)
+    dom.removeEventListener('pointercancel', cleanup)
   }
-  resizing.value = false
-  resizeColKey.value = null
-  document.body.style.cursor = ''
-  window.removeEventListener('mousemove', onResizerMouseMove)
-  window.removeEventListener('mouseup', onResizerMouseUp)
+
+  dom.addEventListener('pointermove', onMove)
+  dom.addEventListener('pointerup', cleanup)
+  dom.addEventListener('pointercancel', cleanup)
 }
 
 function onTableHeaderContextMenu(e: MouseEvent) {
@@ -277,6 +236,9 @@ function onCheckboxChange(checked: boolean) {
   z-index: 2;
   background: transparent;
   transition: background 0.2s;
+  // 让浏览器把所有方向的拖动都交给我们处理，避免触屏滚动抢占事件
+  touch-action: none;
+  -ms-touch-action: none;
   &:hover {
     background-color: var(--border-color);
   }
