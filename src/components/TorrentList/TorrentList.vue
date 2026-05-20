@@ -9,6 +9,7 @@
   >
     <!-- 虚拟列表 -->
     <DynamicScroller
+      ref="scrollerRef"
       :class="$style['torrent-table-scroll']"
       :style="{ height: props.listHeight, '--tableWidth': tableMinWidth + 'px' }"
       @scroll="handleScroll"
@@ -53,6 +54,7 @@ const showHeaderMenu = ref(false)
 const rowMenuX = ref(0)
 const rowMenuY = ref(0)
 const tableMinWidth = computed(() => torrentStore.tableMinWidth)
+const scrollerRef = ref<{ $el?: HTMLElement; scrollToItem: (index: number) => void } | null>(null)
 
 // 直接使用 store 的过滤结果
 const filteredTorrents = computed(() => torrentStore.filterTorrents)
@@ -138,6 +140,37 @@ function onKeyDown(event: KeyboardEvent) {
     torrentStore.setSelectedKeys(filteredTorrents.value.map((t) => t.id))
   }
 }
+
+function isTorrentVisible(id: number) {
+  const container = scrollerRef.value?.$el
+  const row = container?.querySelector<HTMLElement>(`.torrent-row[data-torrent-id="${id}"]`)
+  if (!container || !row) {
+    return false
+  }
+  const containerRect = container.getBoundingClientRect()
+  const rowRect = row.getBoundingClientRect()
+  return rowRect.bottom > containerRect.top && rowRect.top < containerRect.bottom
+}
+
+function scrollToTorrent(id: number | null) {
+  if (id === null || isTorrentVisible(id)) {
+    return
+  }
+  const index = filteredTorrents.value.findIndex((torrent) => torrent.id === id)
+  if (index < 0) {
+    return
+  }
+  scrollerRef.value?.scrollToItem(index)
+}
+
+watch(
+  () => torrentStore.scrollToTorrentRequest,
+  async () => {
+    await nextTick()
+    scrollToTorrent(torrentStore.scrollToTorrentId)
+  },
+  { flush: 'post' }
+)
 </script>
 <style lang="less"></style>
 <style lang="less" module>

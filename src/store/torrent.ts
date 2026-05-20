@@ -136,7 +136,6 @@ export const useTorrentStore = defineStore('torrent', () => {
     const dirMenuMode = settingStore.setting.dirMenuMode
 
     // 一次循环完成所有计算：统计 + 过滤
-    let filteredIndex = 0
     torrents.value.forEach((t, idx) => {
       mapTorrentsIndex[t.id] = idx
       // 将选项全部放到 map 中
@@ -155,7 +154,6 @@ export const useTorrentStore = defineStore('torrent', () => {
         )
       ) {
         filtered.push(t)
-        mapFilterTorrentsIndex[t.id] = filteredIndex++
       }
     })
 
@@ -163,6 +161,9 @@ export const useTorrentStore = defineStore('torrent', () => {
     if (sortKey.value) {
       sortTorrents(filtered, sortKey, sortOrder)
     }
+    filtered.forEach((t, idx) => {
+      mapFilterTorrentsIndex[t.id] = idx
+    })
     // 检测所有的 filter 的值是否在 map 里面，如果不在重置成全部
     if (!statusSet.get(statusFilter.value)) {
       statusFilter.value = 'all'
@@ -202,6 +203,8 @@ export const useTorrentStore = defineStore('torrent', () => {
   const options = computed(() => computedData.value.options)
   const filterTorrents = computed(() => computedData.value.filterTorrents)
   const mapFilterTorrentsIndex = computed(() => computedData.value.mapFilterTorrentsIndex)
+  const scrollToTorrentId = ref<number | null>(null)
+  const scrollToTorrentRequest = ref(0)
 
   // selection 相关逻辑拆分
   const {
@@ -214,6 +217,32 @@ export const useTorrentStore = defineStore('torrent', () => {
     lastSelectedKey,
     setLastSelectedKey
   } = useSelection(() => filterTorrents.value)
+
+  function requestScrollToTorrent(id: number | null) {
+    if (id === null || mapFilterTorrentsIndex.value[id] === undefined) {
+      return
+    }
+    scrollToTorrentId.value = id
+    scrollToTorrentRequest.value += 1
+  }
+
+  function keepVisibleSelectionAndRequestScroll() {
+    if (selectedKeys.value.length === 0) {
+      return
+    }
+    const visibleSelectedKeys = selectedKeys.value.filter((id) => mapFilterTorrentsIndex.value[id] !== undefined)
+    if (visibleSelectedKeys.length === 0) {
+      clearSelectedKeys()
+      return
+    }
+    const targetId =
+      lastSelectedKey.value !== null && visibleSelectedKeys.includes(lastSelectedKey.value)
+        ? lastSelectedKey.value
+        : visibleSelectedKeys[visibleSelectedKeys.length - 1]
+    setSelectedKeys(visibleSelectedKeys)
+    setLastSelectedKey(targetId)
+    requestScrollToTorrent(targetId)
+  }
 
   async function fetchTorrents() {
     const fields = listFields
@@ -257,8 +286,8 @@ export const useTorrentStore = defineStore('torrent', () => {
     immediate: false
   })
 
-  watch([search, statusFilter, labelsFilter, trackerFilter, errorStringFilter, downloadDirFilter], () => {
-    clearSelectedKeys()
+  watch([search, statusFilter, labelsFilter, trackerFilter, errorStringFilter, downloadDirFilter, sortKey, sortOrder], () => {
+    keepVisibleSelectionAndRequestScroll()
   })
   ;(window as any).torrents = torrents
   return {
@@ -300,6 +329,9 @@ export const useTorrentStore = defineStore('torrent', () => {
     sortOrder,
     setSort,
     mapColumnWidth,
+    scrollToTorrentId,
+    scrollToTorrentRequest,
+    requestScrollToTorrent,
     fetchDetails,
     startDetailPolling,
     stopDetailPolling

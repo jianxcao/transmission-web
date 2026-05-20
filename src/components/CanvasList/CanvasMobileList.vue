@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+import { useTorrentStore } from '@/store'
 import CanvasTableMobileBody from './CanvasTableMobileBody.vue'
 import { useCardStore } from './store/cardStore'
 import { TOOLBAR_HEIGHT } from './store/utils'
@@ -27,6 +28,7 @@ const props = defineProps<{
 }>()
 
 const cardStore = useCardStore()
+const torrentStore = useTorrentStore()
 const canvasTableMobileBodyRef = useTemplateRef<InstanceType<typeof CanvasTableMobileBody>>('canvasTableMobileBodyRef')
 const scrollHolderRef = useTemplateRef<HTMLElement>('scrollHolderRef')
 const canvasMobileListWrapperRef = useTemplateRef<HTMLElement>('canvasMobileListWrapperRef')
@@ -100,6 +102,35 @@ useResizeObserver([canvasMobileListWrapperRef], () => {
 onMounted(() => {
   cardStore.setClientWidth(scrollHolderRef.value?.clientWidth!)
 })
+
+function scrollToTorrent(id: number | null) {
+  if (id === null || !canvasMobileListContainerRef.value) {
+    return
+  }
+  const index = torrentStore.filterTorrents.findIndex((torrent) => torrent.id === id)
+  if (index < 0) {
+    return
+  }
+  const heights = cardStore.cumulativeHeights.heights
+  const top = index === 0 ? 0 : heights[index - 1] || 0
+  const bottom = heights[index] || top
+  const visibleTop = canvasMobileListContainerRef.value.scrollTop
+  const visibleBottom = visibleTop + cardStore.clientHeight
+  if (bottom > visibleTop && top < visibleBottom) {
+    return
+  }
+  canvasMobileListContainerRef.value.scrollTop = top
+  cardStore.setScroll(top, 0)
+}
+
+watch(
+  () => torrentStore.scrollToTorrentRequest,
+  async () => {
+    await nextTick()
+    scrollToTorrent(torrentStore.scrollToTorrentId)
+  },
+  { flush: 'post' }
+)
 </script>
 
 <style lang="less" scoped>

@@ -117,6 +117,35 @@ function onLongtap(e: AnyTouchEvent) {
   canvasTableBodyRef.value?.handleLongtap(e)
 }
 
+function scrollToTorrent(id: number | null) {
+  if (id === null || !canvasListContainerRef.value) {
+    return
+  }
+  const index = torrentStore.filterTorrents.findIndex((torrent) => torrent.id === id)
+  if (index < 0) {
+    return
+  }
+  const heights = tableStore.cumulativeHeights.heights
+  const top = index === 0 ? 0 : heights[index - 1] || 0
+  const bottom = heights[index] || top
+  const visibleTop = canvasListContainerRef.value.scrollTop
+  const visibleBottom = visibleTop + tableStore.clientHeight
+  if (bottom > visibleTop && top < visibleBottom) {
+    return
+  }
+  canvasListContainerRef.value.scrollTop = top
+  tableStore.setScroll(top, canvasListContainerRef.value.scrollLeft)
+}
+
+watch(
+  () => torrentStore.scrollToTorrentRequest,
+  async () => {
+    await nextTick()
+    scrollToTorrent(torrentStore.scrollToTorrentId)
+  },
+  { flush: 'post' }
+)
+
 // const scrollContainer = ref<HTMLElement>(document.body)
 // useResizeObserver(scrollContainer, () => {
 //   listheight.value = document.documentElement.clientHeight - 56 - 32
