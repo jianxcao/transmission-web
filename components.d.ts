@@ -91,6 +91,7 @@ declare module 'vue' {
     PollingSettings: typeof import('./src/components/dialog/settings/PollingSettings.vue')['default']
     PositiveNumber: typeof import('./src/components/TorrentList/cells/PositiveNumber.vue')['default']
     PriorityCell: typeof import('./src/components/TorrentList/cells/PriorityCell.vue')['default']
+    PwaUpdatePrompt: typeof import('./src/components/PwaUpdatePrompt.vue')['default']
     QueueSettings: typeof import('./src/components/dialog/settings/QueueSettings.vue')['default']
     RenameTorrentDialog: typeof import('./src/components/dialog/RenameTorrentDialog.vue')['default']
     ResizeHorizontalLine: typeof import('./src/components/ResizeHorizontalLine.vue')['default']

@@ -17,6 +17,7 @@ watchEffect(() => {
       <n-modal-provider>
         <n-dialog-provider>
           <n-message-provider placement="bottom-right">
+            <PwaUpdatePrompt />
             <LayoutView />
           </n-message-provider>
         </n-dialog-provider>

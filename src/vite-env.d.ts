@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-svg-loader" />
+/// <reference types="vite-plugin-pwa/client" />
 
 declare module 'vue-virtual-scroller'
 

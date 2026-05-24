@@ -33,6 +33,12 @@
   "header": {
     "title": "Transmission Web"
   },
+  "pwa": {
+    "updateTitle": "New version available",
+    "updateDescription": "The new version is ready. Click update now to refresh the page automatically.",
+    "updateNow": "Update now",
+    "updateFailed": "Update failed. Please try again later."
+  },
   "login": {
     "title": "Transmission Login",
     "domain": "Domain",
