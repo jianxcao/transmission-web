@@ -15,9 +15,9 @@ on:
         default: 'both'
         type: choice
         options:
-          - both     # 同时推送版本号和 latest
-          - version  # 只推送 1.2.3 / 1.2
-          - latest   # 只推送 latest
+          - both # 同时推送版本号和 latest
+          - version # 只推送 1.2.3 / 1.2
+          - latest # 只推送 latest
 
 env:
   IMAGE_NAME: transmission-web
@@ -52,24 +52,37 @@ jobs:
         id: ctx
         shell: bash
         run: |
-          set -e
-          MODE="${{ github.event.inputs.tags_mode }}"
-          INPUT_VERSION="${{ github.event.inputs.version }}"
+          set -euo pipefail
+
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
+          MODE="${{ github.event.inputs.tags_mode || 'both' }}"
+          INPUT_VERSION="${{ github.event.inputs.version || '' }}"
+          REF_NAME="${GITHUB_REF_NAME:-${GITHUB_REF#refs/tags/}}"
+
+          if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            echo "❌ 缺少 DOCKERHUB_USERNAME secret"
+            exit 1
+          fi
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # workflow_dispatch：优先用入参的版本号；没填则尝试 package.json
-            if [ -z "$INPUT_VERSION" ] && [ -f package.json ]; then
+            # workflow_dispatch：优先用入参版本号；如果当前 ref 是 v* tag，则用当前 tag；最后兜底 package.json
+            if [ -n "$INPUT_VERSION" ]; then
+              VERSION="$INPUT_VERSION"
+            elif [[ "$REF_NAME" == v* ]]; then
+              VERSION="${REF_NAME#v}"
+            elif [ -f package.json ]; then
               INPUT_VERSION=$(node -p "require('./package.json').version")
+              VERSION="$INPUT_VERSION"
+            else
+              VERSION=""
             fi
-            VERSION="$INPUT_VERSION"
-            [ -z "$MODE" ] && MODE="both"
           else
             # tag push：从 ref 解析版本号
-            REF="${GITHUB_REF#refs/tags/}"
-            VERSION="${REF#v}"
+            VERSION="${REF_NAME#v}"
             MODE="both"
           fi
 
+          VERSION="${VERSION#v}"
           if [ -z "$VERSION" ]; then
             echo "❌ 无法解析版本号"
             exit 1
@@ -93,33 +106,42 @@ jobs:
           if [ "$IS_PRERELEASE" = "true" ]; then
             PUSH_LATEST=false
           else
-            MAJOR_MINOR=$(echo "$VERSION" | awk -F. '{print $1"."$2}')
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+(\.|$) ]]; then
+              MAJOR_MINOR=$(echo "$VERSION" | awk -F. '{print $1"."$2}')
+            fi
           fi
 
-          echo "Resolved: version=$VERSION mm=$MAJOR_MINOR mode=$MODE prerelease=$IS_PRERELEASE push_version=$PUSH_VERSION push_latest=$PUSH_LATEST"
+          TAGS_FILE=$(mktemp)
+          if [ "$PUSH_VERSION" = "true" ]; then
+            echo "$IMAGE:$VERSION" >> "$TAGS_FILE"
+            if [ -n "$MAJOR_MINOR" ]; then
+              echo "$IMAGE:$MAJOR_MINOR" >> "$TAGS_FILE"
+            fi
+          fi
+          if [ "$PUSH_LATEST" = "true" ]; then
+            echo "$IMAGE:latest" >> "$TAGS_FILE"
+          fi
+
+          if [ ! -s "$TAGS_FILE" ]; then
+            echo "❌ 未生成任何 Docker tag，请检查 version 和 tags_mode"
+            exit 1
+          fi
+
+          echo "Resolved: image=$IMAGE version=$VERSION mm=$MAJOR_MINOR mode=$MODE prerelease=$IS_PRERELEASE push_version=$PUSH_VERSION push_latest=$PUSH_LATEST"
+          echo "Docker tags:"
+          cat "$TAGS_FILE"
 
           {
+            echo "image=$IMAGE"
             echo "version=$VERSION"
             echo "major_minor=$MAJOR_MINOR"
             echo "is_prerelease=$IS_PRERELEASE"
             echo "push_version=$PUSH_VERSION"
             echo "push_latest=$PUSH_LATEST"
+            echo "tags<<EOF"
+            cat "$TAGS_FILE"
+            echo "EOF"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          # 标签开关由上一步 Resolve publish context 决定：
-          # - tags_mode=version  -> 1.2.3 + 1.2
-          # - tags_mode=latest   -> latest
-          # - tags_mode=both     -> 三个都打
-          # - 预发布版本：永远不打 latest 和 major.minor
-          tags: |
-            type=raw,value=${{ steps.ctx.outputs.version }},enable=${{ steps.ctx.outputs.push_version == 'true' }}
-            type=raw,value=${{ steps.ctx.outputs.major_minor }},enable=${{ steps.ctx.outputs.push_version == 'true' && steps.ctx.outputs.major_minor != '' }}
-            type=raw,value=latest,enable=${{ steps.ctx.outputs.push_latest == 'true' }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -127,8 +149,12 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.ctx.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.ctx.outputs.version }}
+            org.opencontainers.image.title=${{ env.IMAGE_NAME }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -137,8 +163,8 @@ jobs:
         run: |
           echo "### 🐳 Docker 推送结果" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- 镜像: \`${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- 镜像: \`${{ steps.ctx.outputs.image }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Tags:" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.ctx.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
