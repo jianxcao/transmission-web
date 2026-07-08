@@ -66,8 +66,13 @@ watch(
 )
 async function onConfirm() {
   loading.value = true
+  const cleanTrackers = tracker.value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join('\n')
   try {
-    await rpc.torrentSet({ ids: localSelectedKeys.value, trackerList: tracker.value || '' })
+    await rpc.torrentSet({ ids: localSelectedKeys.value, trackerList: cleanTrackers })
     show.value = false
     message.success($t('changeTracker.modifySuccess'))
     await torrentStore.fetchTorrents()

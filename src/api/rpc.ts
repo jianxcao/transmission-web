@@ -602,6 +602,8 @@ export interface TorrentSetArgs {
   sequential_download?: boolean
   /** 宣布 URL 字符串，每行一个，层之间用空行分隔 */
   trackerList?: string
+  /** 要追加的宣布 URL 字符串数组 */
+  trackerAdd?: string[]
   /** 最大上传速度 (KBps) */
   uploadLimit?: number
   /** 如果为 true，则遵守 uploadLimit */

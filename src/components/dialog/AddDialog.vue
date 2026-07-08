@@ -84,7 +84,7 @@
 <script setup lang="ts">
 import type { TorrentAddArgs } from '@/api/rpc'
 import { trpc } from '@/api/trpc'
-import { useSessionStore, useTorrentStore } from '@/store'
+import { useSessionStore, useTorrentStore, useSettingStore } from '@/store'
 import { sleep } from '@/utils'
 import { useIsSmallScreen } from '@/composables/useIsSmallScreen'
 import { useDownloadDirOptions } from '@/composables/useDownloadDirOptions'
@@ -95,6 +95,7 @@ const isMobile = useIsSmallScreen()
 const labelType = computed(() => (isMobile.value ? 'top' : 'left'))
 const torrentStore = useTorrentStore()
 const sessionStore = useSessionStore()
+const settingStore = useSettingStore()
 const { t: $t } = useI18n()
 const rpcVersion = computed(() => sessionStore.rpcVersion)
 const props = defineProps<{
@@ -212,6 +213,24 @@ async function addTask(metainfo: string, filename?: string): Promise<'added' | '
       sequential_download: form.sequential_download
     })
     console.debug('添加种子', res)
+
+    // 自动追加本地默认 trackers
+    const addedTorrent = res.arguments['torrent-added'] || res.arguments['torrent-duplicate']
+    if (addedTorrent?.id) {
+      const defaultTrackers = settingStore.setting.defaultTrackers || []
+      if (defaultTrackers.length > 0) {
+        try {
+          await trpc.torrentSet({
+            ids: addedTorrent.id,
+            trackerAdd: defaultTrackers
+          })
+          console.debug(`已自动为种子 ${addedTorrent.id} 追加默认 trackers`)
+        } catch (err) {
+          console.error('追加默认 trackers 失败', err)
+        }
+      }
+    }
+
     if (res.arguments['torrent-duplicate']) {
       return 'duplicate'
     }

@@ -211,6 +211,15 @@ async function onSave() {
         )
       : []
     settingStore.setting.customDownloadDirs = customDirs
+
+    if (sessionForm.value['default-trackers']) {
+      sessionForm.value['default-trackers'] = (sessionForm.value['default-trackers'] as string)
+        .split('\n')
+        .map((item: string) => item.trim())
+        .filter(Boolean)
+        .join('\n')
+    }
+
     await rpc.sessionSet(
       omit(sessionForm.value, [
         'single-line',
