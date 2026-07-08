@@ -345,12 +345,27 @@ export const sortTorrents = function (
     } else if (typeof aValue === 'string' && typeof bValue === 'string') {
       result = sortOrder.value === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
     }
+
+    // 特殊列的多级排序处理
+    // 1. 如果是做种人数列 (peersSendingToUs)，在活跃做种人数相等时，比较总做种人数 (cachedSeedsTotal)
+    if (result === 0 && sortKey.value === 'peersSendingToUs') {
+      const aSeeds = a.cachedSeedsTotal ?? 0
+      const bSeeds = b.cachedSeedsTotal ?? 0
+      result = sortOrder.value === 'asc' ? aSeeds - bSeeds : bSeeds - aSeeds
+    }
+    // 2. 如果是下载人数列 (peersGettingFromUs)，在活跃下载人数相等时，比较总下载人数 (cachedPeersTotal)
+    else if (result === 0 && sortKey.value === 'peersGettingFromUs') {
+      const aPeers = a.cachedPeersTotal ?? 0
+      const bPeers = b.cachedPeersTotal ?? 0
+      result = sortOrder.value === 'asc' ? aPeers - bPeers : bPeers - aPeers
+    }
+
     // 其他类型（如布尔、对象等）
     // result = 0 时，说明字段值相等，需要二次排序
     if (result === 0 && sortKey.value !== 'name') {
       const aName = a.name || ''
       const bName = b.name || ''
-      result = aName.localeCompare(bName)
+      result = sortOrder.value === 'asc' ? aName.localeCompare(bName) : bName.localeCompare(aName)
     }
     return result
   })
