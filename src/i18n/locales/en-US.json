@@ -170,6 +170,7 @@
   },
   "statusFilter": {
     "downloading": "Downloading",
+    "queuedToSeed": "Queued to Seed",
     "stopped": "Stopped",
     "completed": "Completed",
     "verifying": "Verifying",

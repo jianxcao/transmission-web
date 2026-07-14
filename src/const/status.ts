@@ -57,6 +57,13 @@ export const statusFilters = [
     color: '#748ffc'
   },
   {
+    key: 'queuedToSeed',
+    label: (t: any) => t('statusFilter.queuedToSeed'),
+    filter: (t: Torrent) => t.status === Status.queuedToSeed,
+    icon: ClockIcon,
+    color: '#3bc9db'
+  },
+  {
     key: 'stopped',
     label: (t: any) => t('statusFilter.stopped'),
     filter: (t: Torrent) => t.status === Status.stopped,

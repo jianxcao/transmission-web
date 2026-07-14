@@ -170,6 +170,7 @@
   },
   "statusFilter": {
     "downloading": "下载中",
+    "queuedToSeed": "等待做种",
     "stopped": "已暂停",
     "completed": "已完成",
     "verifying": "正在校验",
