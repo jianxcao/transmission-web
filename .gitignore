@@ -11,3 +11,5 @@ dist
 .env.local
 .secrets
 dev-dist
+.idea
+.env.development
