@@ -2,10 +2,10 @@
   <n-element class="py-3 space-y-3">
     <n-progress
       class="px-3"
-      :percentage="Math.ceil(torrent.percentDone * 100)"
+      :percentage="progressPercentage"
       type="line"
       size="large"
-      :processing="torrent.percentDone !== 1"
+      :processing="progressProcessing"
       indicator-placement="inside"
     />
     <n-card :title="t('torrentDetail.general.transmissionInfo')">
@@ -153,7 +153,8 @@
 import { computed } from 'vue'
 import type { Torrent } from '@/api/rpc'
 import { formatSpeed, formatSize, timeToStr } from '@/utils'
-import { getStatusString } from '@/types/tr'
+import { getStatusString, Status } from '@/types/tr'
+import { getTorrentProgress } from '@/utils/torrentProgress'
 import dayjs from 'dayjs'
 import { useI18n } from 'vue-i18n'
 
@@ -162,6 +163,13 @@ const { t } = useI18n()
 const props = defineProps<{ torrent: Torrent }>()
 
 const statusText = computed(() => getStatusString(props.torrent.status) || '-')
+
+const isChecking = computed(
+  () => props.torrent.status === Status.queuedToVerify || props.torrent.status === Status.verifying
+)
+const progress = computed(() => getTorrentProgress(props.torrent))
+const progressPercentage = computed(() => Math.ceil(progress.value * 100))
+const progressProcessing = computed(() => isChecking.value || progress.value !== 1)
 
 function formatDate(ts?: number) {
   if (!ts) {

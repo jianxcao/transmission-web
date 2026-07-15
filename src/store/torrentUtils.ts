@@ -1,6 +1,7 @@
 import type { Torrent, TrackerStat } from '@/api/rpc'
 import { statusFilterFunMap, statusFilters } from '@/const/status'
 import { Status } from '@/types/tr'
+import { getTorrentProgress } from '@/utils/torrentProgress'
 import { ShuffleOutline } from '@vicons/ionicons5'
 import i18n from '@/i18n'
 import { isFunction } from 'lodash-es'
@@ -326,8 +327,8 @@ export const sortTorrents = function (
   sortOrder: globalThis.Ref<string, string>
 ) {
   filtered.sort((a, b) => {
-    const aValue = a[sortKey.value as keyof Torrent]
-    const bValue = b[sortKey.value as keyof Torrent]
+    const aValue = sortKey.value === 'percentDone' ? getTorrentProgress(a) : a[sortKey.value as keyof Torrent]
+    const bValue = sortKey.value === 'percentDone' ? getTorrentProgress(b) : b[sortKey.value as keyof Torrent]
     // 处理 undefined/null
     if (aValue == null && bValue == null) {
       return 0

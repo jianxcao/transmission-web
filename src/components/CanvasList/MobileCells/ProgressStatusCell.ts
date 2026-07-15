@@ -4,6 +4,7 @@ import { fitText, getTextWidth, roundRect } from '../cells/utils'
 import { MOBILE_LINE_MARGIN, MOBILE_PROGRESS_HEIGHT } from '../store/mobileUtils'
 import type { MobileCellComponent, MobileCellHeightCalculator, MobileCellRenderer } from './types'
 import { rowDark } from 'naive-ui/es/legacy-grid/styles'
+import { getTorrentProgress } from '@/utils/torrentProgress'
 
 // 获取状态颜色和背景色
 function getStatusColors(
@@ -162,8 +163,7 @@ const render: MobileCellRenderer = ({ ctx, row, state, theme }) => {
   const progressBarX = state.x
   const progressTextX = state.x + progressBarWidth
   const statusTagX = state.x + progressBarWidth + progressTextWidth
-  // 限制 percentDone 在 0-1 范围内
-  const percentDone = Math.min(Math.max(row.percentDone, 0), 1)
+  const percentDone = getTorrentProgress(row)
 
   // 绘制进度条
   drawProgressBar(

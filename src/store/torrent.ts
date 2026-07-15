@@ -39,6 +39,7 @@ const listFields = [
   'peersGettingFromUs',
   'peersSendingToUs',
   'percentDone',
+  'recheckProgress',
   'pieceCount',
   'pieceSize',
   'queuePosition',
