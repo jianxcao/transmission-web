@@ -3,7 +3,7 @@ import type { ColumnConfig } from '@/composables/useColumns'
 import { PADDING_X } from '../store/utils'
 import { roundRect, roundRectLeft } from './utils'
 import { useSettingStore } from '@/store'
-import { Status } from '@/types/tr'
+import { getTorrentProgress } from '@/utils/torrentProgress'
 
 export default function renderPercentBarCell(
   ctx: CanvasRenderingContext2D,
@@ -19,21 +19,7 @@ export default function renderPercentBarCell(
   const barRadius = height / 3
   const barX = x + PADDING_X
   const barY = y + (rowHeight - height) / 2
-  // 等待校验/校验中时展示校验进度 recheckProgress，否则用下载进度 percentDone
-  let percent: number
-  if (row.status === Status.queuedToVerify || row.status === Status.verifying) {
-    percent = Math.round((Number(row.recheckProgress) || 0) * 100)
-  } else {
-    // 目前 返回的数据中percentDone在下载的时候一直是 0
-    const value = Number(row[col.key as keyof Torrent])
-    percent = Math.round(value * 100)
-    const sizeWhenDone = Number(row.sizeWhenDone)
-    const downloadedEver = Number(row.downloadedEver)
-    if (downloadedEver > 0) {
-      percent = Math.max(percent, Math.min(Math.round((downloadedEver / sizeWhenDone) * 100), 100))
-    }
-  }
-  percent = Math.min(Math.max(percent, 0), 100)
+  const percent = Math.round(getTorrentProgress(row) * 100)
   const percentWidth = Math.max((width * percent) / 100, 0)
   const active = row.rateDownload > 0 || row.rateUpload > 0
   const theme = settingStore.themeVars

@@ -1,9 +1,10 @@
-import { getStatusString, Status } from '@/types/tr'
+import { getStatusString } from '@/types/tr'
 import type { ThemeCommonVars } from 'naive-ui'
 import { fitText, getTextWidth, roundRect } from '../cells/utils'
 import { MOBILE_LINE_MARGIN, MOBILE_PROGRESS_HEIGHT } from '../store/mobileUtils'
 import type { MobileCellComponent, MobileCellHeightCalculator, MobileCellRenderer } from './types'
 import { rowDark } from 'naive-ui/es/legacy-grid/styles'
+import { getTorrentProgress } from '@/utils/torrentProgress'
 
 // 获取状态颜色和背景色
 function getStatusColors(
@@ -162,11 +163,7 @@ const render: MobileCellRenderer = ({ ctx, row, state, theme }) => {
   const progressBarX = state.x
   const progressTextX = state.x + progressBarWidth
   const statusTagX = state.x + progressBarWidth + progressTextWidth
-  // 等待校验/校验中时展示校验进度 recheckProgress，否则用下载进度 percentDone
-  const percentDone =
-    row.status === Status.queuedToVerify || row.status === Status.verifying
-      ? Math.min(Math.max(Number(row.recheckProgress) || 0, 0), 1)
-      : Math.min(Math.max(row.percentDone, 0), 1)
+  const percentDone = getTorrentProgress(row)
 
   // 绘制进度条
   drawProgressBar(

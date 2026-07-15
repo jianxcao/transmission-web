@@ -154,6 +154,7 @@ import { computed } from 'vue'
 import type { Torrent } from '@/api/rpc'
 import { formatSpeed, formatSize, timeToStr } from '@/utils'
 import { getStatusString, Status } from '@/types/tr'
+import { getTorrentProgress } from '@/utils/torrentProgress'
 import dayjs from 'dayjs'
 import { useI18n } from 'vue-i18n'
 
@@ -163,17 +164,12 @@ const props = defineProps<{ torrent: Torrent }>()
 
 const statusText = computed(() => getStatusString(props.torrent.status) || '-')
 
-// 等待校验/校验中时展示校验进度 recheckProgress，否则展示下载进度 percentDone
 const isChecking = computed(
   () => props.torrent.status === Status.queuedToVerify || props.torrent.status === Status.verifying
 )
-const progressPercentage = computed(() => {
-  if (isChecking.value) {
-    return Math.min(Math.max(Math.ceil((Number(props.torrent.recheckProgress) || 0) * 100), 0), 100)
-  }
-  return Math.ceil(props.torrent.percentDone * 100)
-})
-const progressProcessing = computed(() => (isChecking.value ? true : props.torrent.percentDone !== 1))
+const progress = computed(() => getTorrentProgress(props.torrent))
+const progressPercentage = computed(() => Math.ceil(progress.value * 100))
+const progressProcessing = computed(() => isChecking.value || progress.value !== 1)
 
 function formatDate(ts?: number) {
   if (!ts) {
