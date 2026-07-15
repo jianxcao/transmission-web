@@ -192,8 +192,19 @@
     "totalSize": "Total Size: {size}",
     "selectedSize": "Selected Size: {size}",
     "freeSpace": "Free Space: {size}",
+    "setDownloadLimit": "Set global download limit",
+    "setUploadLimit": "Set global upload limit",
     "toggleTheme": "Toggle Theme",
     "about": "About"
+  },
+  "speedLimitDialog": {
+    "downloadTitle": "Global Download Speed Limit",
+    "uploadTitle": "Global Upload Speed Limit",
+    "limit": "Speed limit",
+    "unlimited": "∞",
+    "unlimitedHint": "Clear the input to use unlimited speed",
+    "saveSuccess": "Global speed limit updated",
+    "saveFailed": "Failed to update global speed limit"
   },
   "message": {
     "taskStarted": "Tasks started",

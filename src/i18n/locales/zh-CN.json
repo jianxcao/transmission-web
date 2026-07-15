@@ -192,8 +192,19 @@
     "totalSize": "文件总大小: {size}",
     "selectedSize": "选中大小: {size}",
     "freeSpace": "剩余空间: {size}",
+    "setDownloadLimit": "设置全局下载限速",
+    "setUploadLimit": "设置全局上传限速",
     "toggleTheme": "切换主题",
     "about": "关于"
+  },
+  "speedLimitDialog": {
+    "downloadTitle": "全局下载速度限制",
+    "uploadTitle": "全局上传速度限制",
+    "limit": "速度限制",
+    "unlimited": "∞",
+    "unlimitedHint": "清空输入框表示不限速",
+    "saveSuccess": "全局限速已更新",
+    "saveFailed": "全局限速更新失败"
   },
   "message": {
     "taskStarted": "已开始任务",

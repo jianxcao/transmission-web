@@ -1,9 +1,22 @@
 <template>
   <footer :class="[$style.footer, props.class]">
     <div class="flex items-start gap-1 overflow-hidden flex-1 flex-wrap h-full py-[5px]">
-      <n-tag v-for="(item, i) in allTags" :key="i" :type="item.type" size="small">{{ item.text }}</n-tag>
+      <n-tag v-for="(item, i) in infoTags" :key="i" :type="item.type" size="small">{{ item.text }}</n-tag>
     </div>
-    <div class="flex items-center gap-1 flex-shrink-0 h-full" style="width: 64px">
+    <div :class="$style.actions">
+      <button
+        v-for="item in transferItems"
+        :key="item.direction"
+        type="button"
+        :class="$style.transfer"
+        :title="item.title"
+        @click="openSpeedLimitDialog(item.direction)"
+      >
+        <n-icon :component="item.icon" :color="item.color" size="19" />
+        <span>{{ item.rate }}</span>
+        <span v-if="item.limit" :class="$style.limit">[{{ item.limit }}]</span>
+        <span :class="$style.total">({{ item.total }})</span>
+      </button>
       <n-button
         quaternary
         circle
@@ -31,9 +44,17 @@
     </div>
   </footer>
   <AboutDialog v-model:show="showAbout" :version="session?.['version']" :server="serverHost" author="..." />
+  <GlobalSpeedLimitDialog
+    v-model:show="showSpeedLimitDialog"
+    :direction="speedLimitDirection"
+    @saved="statsStore.fetchStats()"
+  />
 </template>
 <script setup lang="ts">
-import { useSessionStore, useSettingStore, useTorrentStore } from '@/store'
+import DoubleArrowDown from '@/assets/icons/doubleArrowDown.svg?component'
+import DoubleArrowUp from '@/assets/icons/doubleArrowUp.svg?component'
+import GlobalSpeedLimitDialog from '@/components/dialog/GlobalSpeedLimitDialog.vue'
+import { useSessionStore, useSettingStore, useStatsStore, useTorrentStore } from '@/store'
 import { formatSize, formatSpeed } from '@/utils'
 import { InformationCircle as InfoIcon, Moon as MoonIcon, Sunny as SunIcon } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
@@ -45,6 +66,7 @@ const props = defineProps<{
 const sessionStore = useSessionStore()
 const torrentStore = useTorrentStore()
 const settingStore = useSettingStore()
+const statsStore = useStatsStore()
 const { t: $t } = useI18n()
 
 const session = computed(() => sessionStore.session)
@@ -80,24 +102,25 @@ const limit = computed(() => {
   // 提前判断 session，不存在则返回默认值
   if (!session.value) {
     return {
-      downRateLimit: -1,
-      upRateLimit: -1,
+      downRateLimit: null,
+      upRateLimit: null,
       freeSpace: 0
     }
   }
 
-  // session 存在，进行实际的逻辑判断
-  const downRateLimit = session.value['alt-speed-enabled']
-    ? (session.value['alt-speed-down'] as number)
-    : session.value['speed-limit-down-enabled']
-      ? (session.value['speed-limit-down'] as number)
-      : -1
-
-  const upRateLimit = session.value['alt-speed-enabled']
-    ? (session.value['alt-speed-up'] as number)
-    : session.value['speed-limit-up-enabled']
-      ? (session.value['speed-limit-up'] as number)
-      : -1
+  const altSpeedEnabled = Boolean(session.value['alt-speed-enabled'])
+  const getEnabledLimit = (enabled: boolean, value: unknown) => {
+    const numericValue = Number(value)
+    return enabled && Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null
+  }
+  const downRateLimit = getEnabledLimit(
+    altSpeedEnabled || Boolean(session.value['speed-limit-down-enabled']),
+    altSpeedEnabled ? session.value['alt-speed-down'] : session.value['speed-limit-down']
+  )
+  const upRateLimit = getEnabledLimit(
+    altSpeedEnabled || Boolean(session.value['speed-limit-up-enabled']),
+    altSpeedEnabled ? session.value['alt-speed-up'] : session.value['speed-limit-up']
+  )
 
   const freeSpace = session.value['download-dir-free-space'] || 0
 
@@ -122,24 +145,38 @@ function onShowAbout() {
   showAbout.value = true
 }
 
-// tag 数据
-const allTags = computed(() => [
+const speedLimitDirection = ref<'download' | 'upload'>('download')
+const showSpeedLimitDialog = ref(false)
+function openSpeedLimitDialog(direction: 'download' | 'upload') {
+  speedLimitDirection.value = direction
+  showSpeedLimitDialog.value = true
+}
+
+const currentStats = computed(() => statsStore.stats?.['current-stats'])
+const transferItems = computed(() => [
+  {
+    direction: 'download' as const,
+    icon: DoubleArrowDown,
+    color: '#16a34a',
+    rate: formatSpeed(statsStore.stats?.downloadSpeed ?? computedFields.value.downRate),
+    limit: limit.value.downRateLimit === null ? '' : formatSpeed(limit.value.downRateLimit * 1024),
+    total: formatSize(currentStats.value?.downloadedBytes ?? 0),
+    title: $t('statusBar.setDownloadLimit')
+  },
+  {
+    direction: 'upload' as const,
+    icon: DoubleArrowUp,
+    color: '#3b82f6',
+    rate: formatSpeed(statsStore.stats?.uploadSpeed ?? computedFields.value.upRate),
+    limit: limit.value.upRateLimit === null ? '' : formatSpeed(limit.value.upRateLimit * 1024),
+    total: formatSize(currentStats.value?.uploadedBytes ?? 0),
+    title: $t('statusBar.setUploadLimit')
+  }
+])
+
+const infoTags = computed(() => [
   { text: $t('statusBar.version', { version: session.value?.['version'] ?? '--' }), type: 'info' as const },
   { text: $t('statusBar.server', { server: serverHost.value }), type: 'info' as const },
-  {
-    text: $t('statusBar.upload', {
-      rate: formatSpeed(computedFields.value.upRate),
-      limit: formatSpeed(limit.value.upRateLimit * 1024)
-    }),
-    type: 'success' as const
-  },
-  {
-    text: $t('statusBar.download', {
-      rate: formatSpeed(computedFields.value.downRate),
-      limit: formatSpeed(limit.value.downRateLimit * 1024)
-    }),
-    type: 'info' as const
-  },
   { text: $t('statusBar.totalSize', { size: formatSize(totalSize.value) }), type: 'info' as const },
   ...(selectedSize.value > 0
     ? [{ text: $t('statusBar.selectedSize', { size: formatSize(selectedSize.value) }), type: 'info' as const }]
@@ -160,5 +197,51 @@ const allTags = computed(() => [
   padding: 0 8px;
   border-top: 1px solid var(--border-color);
   gap: 16px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+.transfer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-left: 1px solid var(--border-color);
+  color: var(--text-color-2, inherit);
+  background: transparent;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--primary-color);
+    background: var(--hover-color, rgb(128 128 128 / 10%));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+}
+
+.limit {
+  color: var(--warning-color, #d97706);
+}
+
+@media (max-width: 720px) {
+  .total {
+    display: none;
+  }
+
+  .transfer {
+    padding: 0 6px;
+  }
 }
 </style>
