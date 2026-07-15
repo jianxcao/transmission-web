@@ -32,6 +32,7 @@ declare module 'vue' {
     FilesTab: typeof import('./src/components/TorrentDetail/tabs/FilesTab.vue')['default']
     FixedDecimal: typeof import('./src/components/TorrentList/cells/FixedDecimal.vue')['default']
     GeneralTab: typeof import('./src/components/TorrentDetail/tabs/GeneralTab.vue')['default']
+    GlobalSpeedLimitDialog: typeof import('./src/components/dialog/GlobalSpeedLimitDialog.vue')['default']
     HeaderMenu: typeof import('./src/components/TorrentList/HeaderMenu.vue')['default']
     IconButton: typeof import('./src/components/IconButton.vue')['default']
     IsPrivateCell: typeof import('./src/components/TorrentList/cells/IsPrivateCell.vue')['default']
