@@ -210,9 +210,6 @@ export const useSettingStore = defineStore('setting', () => {
     setting.value.ignoredTrackerPrefixes = prefixes
   }
 
-  const ignoredTrackerPrefixesReg = computed(() => {
-    return new RegExp(`^(?<prefix>(${setting.value.ignoredTrackerPrefixes.join('|')})\\d*)\\.[^.]+\\.[^.]+$`, 'i')
-  })
 
   // 菜单展开状态
   const menuExpandedKeys = computed({
@@ -241,7 +238,6 @@ export const useSettingStore = defineStore('setting', () => {
     headerHeight,
     footerHeight,
     changeIgnoredTrackerPrefixes,
-    ignoredTrackerPrefixesReg,
     menuExpandedKeys
   }
 })

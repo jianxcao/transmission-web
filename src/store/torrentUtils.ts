@@ -34,11 +34,25 @@ export const getTrackerSiteKey = (value: string, ignoredPrefixes: string[] = [])
   }
   return labels.join('.')
 }
+/** 检查规则模式是否匹配种子关联的任一站点键。pattern 和 sites 中的值均应已通过 getTrackerSiteKey 归一化。 */
+export const matchesTrackerHost = (sites: Set<string>, pattern: string): boolean => {
+  return Array.from(sites).some((host) => host === pattern || host.endsWith(`.${pattern}`))
+}
+
 
 const trackerSitesCache = new Map<
   number,
   { trackerStats: Torrent['trackerStats']; trackerList: string; prefixes: string; sites: Set<string> }
 >()
+/** 清理不在当前种子集中的缓存条目。 */
+export const pruneTrackerSitesCache = (activeIds: Set<number>) => {
+  for (const id of trackerSitesCache.keys()) {
+    if (!activeIds.has(id)) {
+      trackerSitesCache.delete(id)
+    }
+  }
+}
+
 
 /** 获取一个种子关联的去重站点集合，兼容 trackerStats 尚未返回的阶段。 */
 export const getTorrentTrackerSites = (torrent: Torrent, ignoredPrefixes: string[] = []) => {

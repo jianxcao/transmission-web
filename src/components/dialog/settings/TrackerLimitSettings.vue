@@ -97,7 +97,7 @@ import { useI18n } from 'vue-i18n'
 import { useSettingStore, type TrackerLimitRule } from '@/store/setting'
 import { useTorrentStore } from '@/store'
 import { formatSpeed } from '@/utils'
-import { getTorrentTrackerSites, getTrackerSiteKey } from '@/store/torrentUtils'
+import { getTorrentTrackerSites, getTrackerSiteKey, matchesTrackerHost } from '@/store/torrentUtils'
 import { AddCircleOutline, ArrowDownOutline, ArrowUpOutline, TrashOutline } from '@vicons/ionicons5'
 
 const { t: $t } = useI18n()
@@ -133,7 +133,7 @@ const ruleStats = computed(() => {
         return false
       }
       const pattern = getTrackerSiteKey(rule.pattern, ignoredPrefixes)
-      return sites.has(pattern)
+      return matchesTrackerHost(sites, pattern)
     })
     if (ruleIndex < 0) {
       return

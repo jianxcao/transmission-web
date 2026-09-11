@@ -81,7 +81,7 @@ import { useSessionStore, useSettingStore, useStatsStore, useTorrentStore } from
 import { formatSize, formatSpeed } from '@/utils'
 import { InformationCircle as InfoIcon, Moon as MoonIcon, Sunny as SunIcon, WifiSharp } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
-import { getTorrentTrackerSites, getTrackerSiteKey } from '@/store/torrentUtils'
+import { getTorrentTrackerSites, getTrackerSiteKey, matchesTrackerHost } from '@/store/torrentUtils'
 
 const props = defineProps<{
   class?: string
@@ -141,7 +141,7 @@ const trackerSpeedStats = computed(() => {
     const sites = getTorrentTrackerSites(torrent, settingStore.setting.ignoredTrackerPrefixes)
     const ruleIndex = rules.findIndex((rule) => {
       const site = getTrackerSiteKey(rule.pattern, settingStore.setting.ignoredTrackerPrefixes)
-      return sites.has(site)
+      return matchesTrackerHost(sites, site)
     })
     if (ruleIndex < 0) {
       return

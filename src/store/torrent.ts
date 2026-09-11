@@ -12,6 +12,8 @@ import {
   detailFilterOptions,
   getTorrentTrackerSites,
   getTrackerSiteKey,
+  matchesTrackerHost,
+  pruneTrackerSitesCache,
   isFilterTorrents,
   mapToOptions,
   processTorrent,
@@ -321,7 +323,7 @@ export const useTorrentStore = defineStore('torrent', () => {
       const hosts = getTrackerHosts(torrent)
       const rule = rules.find((candidate) => {
         const pattern = getTrackerSiteKey(candidate.pattern, settingStore.setting.ignoredTrackerPrefixes)
-        return Array.from(hosts).some((host) => host === pattern || host.endsWith(`.${pattern}`))
+        return matchesTrackerHost(hosts, pattern)
       })
       const args: Record<string, unknown> = {}
       if (rule?.uploadLimit != null) {
@@ -374,7 +376,7 @@ export const useTorrentStore = defineStore('torrent', () => {
           const rule = torrent
             ? rules.find((candidate) => {
                 const pattern = getTrackerSiteKey(candidate.pattern, settingStore.setting.ignoredTrackerPrefixes)
-                return Array.from(hosts).some((host) => host === pattern || host.endsWith(`.${pattern}`))
+                return matchesTrackerHost(hosts, pattern)
               })
             : undefined
           if (rule) {
@@ -436,6 +438,13 @@ export const useTorrentStore = defineStore('torrent', () => {
         return item
       })
       torrents.value = newRes
+      const activeIds = new Set(newRes.map((t) => t.id))
+      for (const id of trackerRuleSignatures.keys()) {
+        if (!activeIds.has(id)) {
+          trackerRuleSignatures.delete(id)
+        }
+      }
+      pruneTrackerSitesCache(activeIds)
       if (fullFetch) {
         lastMetadataFetchAt = Date.now()
       }
