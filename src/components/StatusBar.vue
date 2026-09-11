@@ -17,6 +17,29 @@
         <span v-if="item.limit" :class="$style.limit">[{{ item.limit }}]</span>
         <span :class="$style.total">({{ item.total }})</span>
       </button>
+      <n-popover v-if="trackerSpeedStats.length > 0" trigger="click" placement="top-end">
+        <template #trigger>
+          <n-button
+            quaternary
+            circle
+            size="small"
+            :title="$t('statusBar.trackerSpeed')"
+            :aria-label="$t('statusBar.trackerSpeed')"
+          >
+            <template #icon>
+              <n-icon :component="WifiSharp" />
+            </template>
+          </n-button>
+        </template>
+        <div :class="$style.trackerStats">
+          <div :class="$style.trackerStatsTitle">{{ $t('statusBar.trackerSpeed') }}</div>
+          <div v-for="item in trackerSpeedStats" :key="item.id" :class="$style.trackerStatsRow">
+            <span :class="$style.trackerStatsName">{{ item.site }}</span>
+            <span>↑ {{ formatSpeed(item.upload) }}</span>
+            <span>↓ {{ formatSpeed(item.download) }}</span>
+          </div>
+        </div>
+      </n-popover>
       <n-button
         quaternary
         circle
@@ -56,8 +79,9 @@ import DoubleArrowUp from '@/assets/icons/doubleArrowUp.svg?component'
 import GlobalSpeedLimitDialog from '@/components/dialog/GlobalSpeedLimitDialog.vue'
 import { useSessionStore, useSettingStore, useStatsStore, useTorrentStore } from '@/store'
 import { formatSize, formatSpeed } from '@/utils'
-import { InformationCircle as InfoIcon, Moon as MoonIcon, Sunny as SunIcon } from '@vicons/ionicons5'
+import { InformationCircle as InfoIcon, Moon as MoonIcon, Sunny as SunIcon, WifiSharp } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
+import { getTorrentTrackerSites, getTrackerSiteKey, matchesTrackerHost } from '@/store/torrentUtils'
 
 const props = defineProps<{
   class?: string
@@ -71,10 +95,8 @@ const { t: $t } = useI18n()
 
 const session = computed(() => sessionStore.session)
 const torrents = computed(() => torrentStore.torrents)
-const totalSize = computed(() => torrents.value.reduce((sum, t) => sum + (t.sizeWhenDone || 0), 0))
-
-const computedFields = computed(() => {
-  return torrents.value.reduce(
+const transferSummary = computed(() =>
+  torrents.value.reduce(
     (prev, t) => {
       prev.totalSize += t.sizeWhenDone || 0
       prev.downRate += t.rateDownload || 0
@@ -87,7 +109,9 @@ const computedFields = computed(() => {
       upRate: 0
     }
   )
-})
+)
+const totalSize = computed(() => transferSummary.value.totalSize)
+const computedFields = computed(() => transferSummary.value)
 const selectedKeys = computed(() => torrentStore.selectedKeys || [])
 const selectedSize = computed(() => {
   if (!selectedKeys.value.length) {
@@ -96,6 +120,36 @@ const selectedSize = computed(() => {
   return torrents.value
     .filter((t) => selectedKeys.value.includes(t.id))
     .reduce((sum, t) => sum + (t.sizeWhenDone || 0), 0)
+})
+
+const trackerSpeedStats = computed(() => {
+  const rules = (settingStore.setting.trackerLimitRules || []).filter(
+    (rule) =>
+      rule &&
+      rule.enabled &&
+      typeof rule.pattern === 'string' &&
+      rule.pattern.trim() &&
+      (rule.uploadLimit != null || rule.downloadLimit != null)
+  )
+  const stats = rules.map((rule) => ({
+    id: rule.id,
+    site: getTrackerSiteKey(rule.pattern, settingStore.setting.ignoredTrackerPrefixes),
+    upload: 0,
+    download: 0
+  }))
+  torrents.value.forEach((torrent) => {
+    const sites = getTorrentTrackerSites(torrent, settingStore.setting.ignoredTrackerPrefixes)
+    const ruleIndex = rules.findIndex((rule) => {
+      const site = getTrackerSiteKey(rule.pattern, settingStore.setting.ignoredTrackerPrefixes)
+      return matchesTrackerHost(sites, site)
+    })
+    if (ruleIndex < 0) {
+      return
+    }
+    stats[ruleIndex].upload += torrent.rateUpload || 0
+    stats[ruleIndex].download += torrent.rateDownload || 0
+  })
+  return stats
 })
 
 const limit = computed(() => {
@@ -204,6 +258,30 @@ const infoTags = computed(() => [
   align-items: center;
   flex-shrink: 0;
   height: 100%;
+}
+
+.trackerStats {
+  min-width: 300px;
+  max-width: min(560px, calc(100vw - 32px));
+}
+
+.trackerStatsTitle {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.trackerStatsRow {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto auto;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.trackerStatsName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transfer {

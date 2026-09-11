@@ -126,7 +126,9 @@
     "downloaded": "Downloaded",
     "filesAdded": "Files Added",
     "sessionCount": "Sessions",
-    "activeTime": "Active Time"
+    "activeTime": "Active Time",
+    "trackerUpload": "Tracker Upload",
+    "trackerUploadHint": "Attributed to the primary tracker; multi-tracker torrents are counted once to avoid double counting"
   },
   "aboutDialog": {
     "title": "About Transmission Web",
@@ -144,6 +146,7 @@
     "download": "Download",
     "network": "Network",
     "bandwidth": "Bandwidth",
+    "trackerLimits": "Tracker Limits",
     "queue": "Queue",
     "other": "Other",
     "saveSuccess": "Saved successfully",
@@ -193,6 +196,7 @@
     "totalSize": "Total Size: {size}",
     "selectedSize": "Selected Size: {size}",
     "freeSpace": "Free Space: {size}",
+    "trackerSpeed": "Tracker site speeds",
     "setDownloadLimit": "Set global download limit",
     "setUploadLimit": "Set global upload limit",
     "toggleTheme": "Toggle Theme",
@@ -247,6 +251,21 @@
     "sessionUpdate": "Session Update",
     "torrentDetail": "Torrent Detail",
     "torrentList": "Torrent List"
+  },
+  "trackerLimitSettings": {
+    "title": "Per-tracker limits",
+    "hint": "Rules match tracker hostnames in order and apply per-torrent limits. When multiple torrents upload at once, total speed can grow with the number of matched torrents; use Bandwidth settings for a global cap. The status-bar speed is an aggregate of torrents assigned to each rule, not tracker-connection traffic. Disabling or deleting a rule leaves existing limits unchanged.",
+    "empty": "No rules",
+    "configured": "Configured",
+    "enabled": "Enable rule",
+    "patternPlaceholder": "Select a site or enter a hostname",
+    "uploadPlaceholder": "Unlimited upload",
+    "downloadPlaceholder": "Unlimited download",
+    "add": "Add rule",
+    "remove": "Remove rule",
+    "moveUp": "Move rule up",
+    "moveDown": "Move rule down",
+    "liveStats": "{count} matched torrents · current ↑ {upload} · ↓ {download}"
   },
   "downloadSettings": {
     "title": "Download Settings",

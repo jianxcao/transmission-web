@@ -8,6 +8,10 @@
       :processing="progressProcessing"
       indicator-placement="inside"
     />
+    <div v-if="hasError" class="error-summary mx-3">
+      <span class="error-label">{{ t('torrentDetail.general.error') }}</span>
+      <span class="error-message">{{ errorMessage || `#${torrent.error}` }}</span>
+    </div>
     <n-card :title="t('torrentDetail.general.transmissionInfo')">
       <div class="torrent-info text-sm">
         <div class="info-item">
@@ -35,10 +39,6 @@
           <span class="truncate" :title="getMainTracker()">{{ getMainTracker() }}</span>
         </div>
 
-        <div class="info-item">
-          <span>{{ t('torrentDetail.general.error') }}</span>
-          <span :title="torrent.errorString">{{ torrent.errorString || '-' }}</span>
-        </div>
         <div class="info-item">
           <span>{{ t('torrentDetail.general.uploaded') }}</span>
           <span>{{ formatSize(torrent.uploadedEver) }}</span>
@@ -155,6 +155,7 @@ import type { Torrent } from '@/api/rpc'
 import { formatSpeed, formatSize, timeToStr } from '@/utils'
 import { getStatusString, Status } from '@/types/tr'
 import { getTorrentProgress } from '@/utils/torrentProgress'
+import { getTorrentError } from '@/store/torrentUtils'
 import dayjs from 'dayjs'
 import { useI18n } from 'vue-i18n'
 
@@ -170,6 +171,10 @@ const isChecking = computed(
 const progress = computed(() => getTorrentProgress(props.torrent))
 const progressPercentage = computed(() => Math.ceil(progress.value * 100))
 const progressProcessing = computed(() => isChecking.value || progress.value !== 1)
+const errorMessage = computed(
+  () => getTorrentError(props.torrent) || props.torrent.errorString || props.torrent.cachedError || ''
+)
+const hasError = computed(() => Boolean(props.torrent.error || errorMessage.value))
 
 function formatDate(ts?: number) {
   if (!ts) {
@@ -265,6 +270,31 @@ function getWasted() {
   & > span:last-child {
     text-align: left;
     flex: 1;
+  }
+}
+.error-summary {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--error-color);
+  border-bottom: 1px solid color-mix(in srgb, var(--error-color) 35%, var(--border-color));
+  border-radius: 4px;
+  color: var(--error-color);
+  background-color: color-mix(in srgb, var(--error-color) 8%, transparent);
+  font-size: 0.875rem;
+  .error-label:after {
+    content: ':';
+  }
+  .error-message {
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+  @media (max-width: 768px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
 }
 .grid-rows-6 {

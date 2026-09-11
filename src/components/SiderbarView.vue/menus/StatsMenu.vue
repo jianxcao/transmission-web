@@ -9,15 +9,20 @@
 
 <script setup lang="ts">
 import { useStatsStore } from '@/store/stats'
-import { useSettingStore } from '@/store'
+import { useSettingStore, useTorrentStore } from '@/store'
 import { formatSize, timeToStr } from '@/utils'
 import { useI18n } from 'vue-i18n'
 import { BarChartOutline } from '@vicons/ionicons5'
 import { renderIcon } from '@/utils'
+import { getTrackerSiteKey } from '@/store/torrentUtils'
+import { useIsSmallScreen } from '@/composables/useIsSmallScreen'
+import { NEllipsis } from 'naive-ui'
 
 const { t } = useI18n()
 const statsStore = useStatsStore()
 const settingStore = useSettingStore()
+const torrentStore = useTorrentStore()
+const isMobile = useIsSmallScreen()
 
 function statItem(label: string, value: string) {
   return {
@@ -26,6 +31,57 @@ function statItem(label: string, value: string) {
       h('span', value),
     ]),
     key: `stats-${label}`,
+  }
+}
+
+const trackerSiteStats = computed(() => {
+  const stats = new Map<string, { uploaded: number; torrents: number }>()
+  const ignoredPrefixes = settingStore.setting.ignoredTrackerPrefixes
+  torrentStore.torrents.forEach((torrent) => {
+    const firstTracker = torrent.trackerStats?.[0]?.host || (torrent.trackerList || '').split(/\s+/).find(Boolean) || ''
+    const site = getTrackerSiteKey(firstTracker, ignoredPrefixes)
+    if (!site) {
+      return
+    }
+    const current = stats.get(site) || { uploaded: 0, torrents: 0 }
+    current.uploaded += torrent.uploadedEver || 0
+    current.torrents += 1
+    stats.set(site, current)
+  })
+  return Array.from(stats.entries()).sort((a, b) => b[1].uploaded - a[1].uploaded || a[0].localeCompare(b[0]))
+})
+
+function trackerSiteItem(site: string, stat: { uploaded: number; torrents: number }) {
+  return {
+    label: () =>
+      h(
+        'div',
+        { class: 'flex justify-between w-full pr-2 gap-2' },
+        [
+          h(
+            NEllipsis,
+            {
+              class: 'stats-site-label',
+              tooltip: {
+                trigger: isMobile.value ? 'click' : 'hover',
+                placement: isMobile.value ? 'bottom-start' : 'right',
+                maxWidth: isMobile.value ? undefined : 520,
+                contentStyle: {
+                  maxWidth: 'calc(100vw - 32px)',
+                  whiteSpace: 'normal',
+                  overflowWrap: 'anywhere'
+                }
+              }
+            },
+            {
+              default: () => site,
+              tooltip: () => site
+            }
+          ),
+          h('span', { class: 'opacity-60' }, formatSize(stat.uploaded))
+        ]
+      ),
+    key: `stats-site-${site}`
   }
 }
 
@@ -63,8 +119,26 @@ const menuOptions = computed(() => {
             statItem(t('statsDialog.activeTime'), cur ? (timeToStr(cur.secondsActive, false) || '0s') : '-'),
           ],
         },
+        {
+          label: () =>
+            h(
+              'span',
+              { title: t('statsDialog.trackerUploadHint') },
+              `${t('statsDialog.trackerUpload')}（${trackerSiteStats.value.length}）`
+            ),
+          key: 'stats-tracker-sites',
+          children: trackerSiteStats.value.map(([site, stat]) => trackerSiteItem(site, stat))
+        }
       ],
     },
   ]
 })
 </script>
+
+<style scoped lang="less">
+:deep(.stats-site-label) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+</style>

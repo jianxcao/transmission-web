@@ -7,7 +7,7 @@
     style="padding: 12px; width: 90vw; max-width: 600px"
     @close="onCancel"
   >
-    <div class="mb-2">{{ $t('otherTorrentSetting.selectedCount', { count: torrentStore.selectedKeys.length }) }}</div>
+    <div class="mb-2">{{ $t('otherTorrentSetting.selectedCount', { count: localSelectedKeys.length }) }}</div>
     <div class="item">
       <n-checkbox v-model:checked="formData.honorsSessionLimits">{{
         $t('otherTorrentSetting.useGlobalUploadLimit')
@@ -98,6 +98,7 @@ const torrentStore = useTorrentStore()
 const sessionStore = useSessionStore()
 const { t: $t } = useI18n()
 const loading = ref(false)
+const localSelectedKeys = ref<number[]>([])
 const props = defineProps<{
   ids?: number[]
 }>()
@@ -135,6 +136,7 @@ const modeOptions = computed(() => [
 watch(show, (v) => {
   if (v) {
     const ids = getSelectIds(props.ids, torrentStore.selectedKeys)
+    localSelectedKeys.value = ids
     const firstTorrent = torrentStore.torrents.find((t) => ids.includes(t.id))
     formData.honorsSessionLimits = firstTorrent?.honorsSessionLimits || false
     formData.seedIdleLimit = firstTorrent?.seedIdleLimit || 30
@@ -147,17 +149,23 @@ watch(show, (v) => {
     formData.uploadLimited = firstTorrent?.uploadLimited || false
     formData.uploadLimit = firstTorrent?.uploadLimit || 0
     formData['peer-limit'] = firstTorrent?.['peer-limit'] || 50
+  } else {
+    localSelectedKeys.value = []
   }
 })
 
 async function onConfirm() {
+  const ids = localSelectedKeys.value.length ? localSelectedKeys.value : getSelectIds(props.ids, torrentStore.selectedKeys)
+  if (ids.length === 0) {
+    message.warning($t('messages.pleaseSelectTask'))
+    return
+  }
   loading.value = true
-  const ids = props.ids?.length ? props.ids : torrentStore.selectedKeys
   try {
     await rpc.torrentSet({ ids, ...formData })
     show.value = false
     message.success($t('otherTorrentSetting.modifySuccess'))
-    await torrentStore.fetchTorrents()
+    await torrentStore.fetchTorrents(true)
   } catch {
     message.error($t('otherTorrentSetting.modifyFailed'))
   } finally {

@@ -111,10 +111,17 @@ export default defineConfig(({ mode }) => {
           ]
         },
         devOptions: {
-          enabled: true
+          // 开发服务不注册 Service Worker，避免旧 SW 拦截 RPC 并输出无路由警告。
+          enabled: false
         },
         workbox: {
-          cleanupOutdatedCaches: true
+          cleanupOutdatedCaches: true,
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }: { url: URL }) => url.pathname.endsWith('/transmission/rpc'),
+              handler: 'NetworkOnly'
+            }
+          ]
         }
       })
     ],

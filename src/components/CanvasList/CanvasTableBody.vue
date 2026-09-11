@@ -323,10 +323,18 @@ function getRowIndex(e: MouseEvent | AnyTouchEvent) {
   const offsetY = clickY - rect.top - tableStore.viewTop
   const offsetX = clickX - rect.left
   const heights = tableStore.cumulativeHeights.heights
-  for (let i = 0; i < heights.length; i++) {
-    if (offsetY < heights[i]) {
-      return [i, offsetX, offsetY]
+  let left = 0
+  let right = heights.length - 1
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2)
+    if (offsetY < heights[mid]) {
+      right = mid - 1
+    } else {
+      left = mid + 1
     }
+  }
+  if (left < heights.length) {
+    return [left, offsetX, offsetY]
   }
   return [null, offsetX, offsetY]
 }

@@ -30,6 +30,11 @@
           <BandwidthSettings v-model:form="sessionForm" />
         </div>
       </n-tab-pane>
+      <n-tab-pane name="trackerLimits" :tab="$t('settings.trackerLimits')">
+        <div>
+          <TrackerLimitSettings />
+        </div>
+      </n-tab-pane>
       <n-tab-pane name="queue" :tab="$t('settings.queue')">
         <div>
           <QueueSettings v-model:form="sessionForm" />

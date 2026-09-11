@@ -75,7 +75,7 @@ async function onConfirm() {
     await rpc.torrentSet({ ids: localSelectedKeys.value, trackerList: cleanTrackers })
     show.value = false
     message.success($t('changeTracker.modifySuccess'))
-    await torrentStore.fetchTorrents()
+    await torrentStore.fetchTorrents(true)
   } catch {
     message.error($t('changeTracker.modifyFailed'))
   } finally {

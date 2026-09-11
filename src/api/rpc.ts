@@ -513,6 +513,30 @@ export interface TorrentGetResponse {
   arguments: { torrents: Torrent[] }
   result: string
 }
+
+export type TorrentGetFormat = 'objects' | 'table'
+
+function decodeTorrentTable(response: TorrentGetResponse, fields: string[]): TorrentGetResponse {
+  const rows = response?.arguments?.torrents as unknown
+  if (!Array.isArray(rows) || !Array.isArray(rows[0])) {
+    return response
+  }
+  const [header, ...dataRows] = rows as unknown[][]
+  const keys = (header || fields).map(String)
+  return {
+    ...response,
+    arguments: {
+      ...response.arguments,
+      torrents: dataRows.map((row) => {
+        const item: Record<string, unknown> = {}
+        keys.forEach((key, index) => {
+          item[key] = row[index]
+        })
+        return item as unknown as Torrent
+      })
+    }
+  }
+}
 export interface TorrentAddArgs {
   /** 下载种子的目标路径 */
   'download-dir'?: string
@@ -650,8 +674,14 @@ export const rpc = {
       'tags'
     ],
     ids?: number[] | number,
-    config?: AxiosRequestConfig
-  ) => callRpc<TorrentGetResponse>('torrent-get', { fields, ...(ids ? { ids } : {}) }, config),
+    config?: AxiosRequestConfig,
+    format: TorrentGetFormat = 'objects'
+  ) =>
+    callRpc<TorrentGetResponse>(
+      'torrent-get',
+      { fields, ...(ids ? { ids } : {}), ...(format === 'table' ? { format } : {}) },
+      config
+    ).then((response) => (response ? decodeTorrentTable(response, fields) : response)),
   torrentAdd: (args: TorrentAddArgs) => callRpc<TorrentAddResponse>('torrent-add', args),
   torrentRemove: async (ids: number[] | number, deleteData = false) => {
     const res = await callRpc('torrent-remove', { ids, 'delete-local-data': deleteData })

@@ -126,7 +126,9 @@
     "downloaded": "已下载",
     "filesAdded": "已添加文件",
     "sessionCount": "会话次数",
-    "activeTime": "活动时间"
+    "activeTime": "活动时间",
+    "trackerUpload": "站点上传",
+    "trackerUploadHint": "按主 Tracker 归属统计；多 Tracker 种子只计入一个站点，不会重复计算"
   },
   "aboutDialog": {
     "title": "关于 Transmission Web",
@@ -144,6 +146,7 @@
     "download": "下载设置",
     "network": "网络设置",
     "bandwidth": "带宽设置",
+    "trackerLimits": "站点限速",
     "queue": "队列设置",
     "other": "其他设置",
     "saveSuccess": "保存成功",
@@ -193,6 +196,7 @@
     "totalSize": "文件总大小: {size}",
     "selectedSize": "选中大小: {size}",
     "freeSpace": "剩余空间: {size}",
+    "trackerSpeed": "站点实时速度",
     "setDownloadLimit": "设置全局下载限速",
     "setUploadLimit": "设置全局上传限速",
     "toggleTheme": "切换主题",
@@ -247,6 +251,21 @@
     "sessionUpdate": "会话更新",
     "torrentDetail": "种子详情",
     "torrentList": "种子列表"
+  },
+  "trackerLimitSettings": {
+    "title": "按 Tracker 站点限速",
+    "hint": "规则按顺序匹配 Tracker 域名，并设置匹配种子的单任务限速。多个种子同时上传时，总速度可能是单任务限速乘以任务数；需要控制总带宽时请使用带宽设置。右下角速度是按规则归属的种子速度汇总，不是 Tracker 连接级流量。关闭或删除规则不会覆盖现有限速。",
+    "empty": "暂无规则",
+    "configured": "已配置",
+    "enabled": "启用规则",
+    "patternPlaceholder": "选择站点或输入域名",
+    "uploadPlaceholder": "上传不限速",
+    "downloadPlaceholder": "下载不限速",
+    "add": "添加规则",
+    "remove": "删除规则",
+    "moveUp": "上移规则",
+    "moveDown": "下移规则",
+    "liveStats": "匹配 {count} 个种子 · 当前 ↑ {upload} · ↓ {download}"
   },
   "downloadSettings": {
     "title": "下载设置",

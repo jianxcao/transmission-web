@@ -33,6 +33,30 @@ export interface IPolling {
   torrentInterval: number
 }
 
+export interface TrackerLimitRule {
+  id: string
+  enabled: boolean
+  pattern: string
+  uploadLimit: number | null
+  downloadLimit: number | null
+}
+
+const normalizeTrackerLimitRules = (value: unknown): TrackerLimitRule[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map((item, index) => ({
+      id: typeof item.id === 'string' && item.id ? item.id : `tracker-rule-${index}`,
+      enabled: item.enabled !== false,
+      pattern: typeof item.pattern === 'string' ? item.pattern : '',
+      uploadLimit: typeof item.uploadLimit === 'number' && Number.isFinite(item.uploadLimit) ? item.uploadLimit : null,
+      downloadLimit:
+        typeof item.downloadLimit === 'number' && Number.isFinite(item.downloadLimit) ? item.downloadLimit : null
+    }))
+}
+
 export const useSettingStore = defineStore('setting', () => {
   const setting = useStorage(
     'setting',
@@ -49,7 +73,7 @@ export const useSettingStore = defineStore('setting', () => {
         torrentDetailInterval: 5,
         torrentInterval: 5
       },
-      menuExpandedKeys: ['status', 'labels', 'dir'],
+      menuExpandedKeys: ['status', 'labels'],
       // 目录侧边栏展示模式：list = 扁平展示所有目录；tree = 按层级折叠
       dirMenuMode: 'list' as 'list' | 'tree',
       // 添加种子/修改目录时是否使用历史下载目录作为联想
@@ -57,11 +81,26 @@ export const useSettingStore = defineStore('setting', () => {
       // 用户自定义的下载目录字典（始终用于联想，不受历史联想开关影响）
       customDownloadDirs: [] as string[],
       // 忽略域名中的部分前缀
-      ignoredTrackerPrefixes: ['t', 'tr', 'tk', 'tracker', 'bt', 'open', 'opentracker', 'pt']
+      ignoredTrackerPrefixes: ['t', 'tr', 'tk', 'tracker', 'bt', 'open', 'opentracker', 'pt'],
+      // 按 tracker 域名匹配的种子级限速规则
+      trackerLimitRules: [] as TrackerLimitRule[]
     },
     localStorage,
     { mergeDefaults: true, deep: true, writeDefaults: true }
   )
+  // 旧版本默认展开目录，升级时仅迁移这组默认值；用户自定义的展开状态保持不变。
+  if (
+    Array.isArray(setting.value.menuExpandedKeys) &&
+    setting.value.menuExpandedKeys.length === 3 &&
+    ['status', 'labels', 'dir'].every((key) => setting.value.menuExpandedKeys.includes(key))
+  ) {
+    setting.value.menuExpandedKeys = ['status', 'labels']
+  }
+  // 兼容早期版本可能写入的 null/非法规则，避免页面初始化时调用 trim 崩溃。
+  const normalizedTrackerRules = normalizeTrackerLimitRules(setting.value.trackerLimitRules)
+  if (JSON.stringify(normalizedTrackerRules) !== JSON.stringify(setting.value.trackerLimitRules)) {
+    setting.value.trackerLimitRules = normalizedTrackerRules
+  }
   // 侧边栏宽度
   const sidebarWidth = useStorage('sidebarWidth', 224, undefined)
 
@@ -171,9 +210,6 @@ export const useSettingStore = defineStore('setting', () => {
     setting.value.ignoredTrackerPrefixes = prefixes
   }
 
-  const ignoredTrackerPrefixesReg = computed(() => {
-    return new RegExp(`^(?<prefix>(${setting.value.ignoredTrackerPrefixes.join('|')})\\d*)\\.[^.]+\\.[^.]+$`, 'i')
-  })
 
   // 菜单展开状态
   const menuExpandedKeys = computed({
@@ -202,7 +238,6 @@ export const useSettingStore = defineStore('setting', () => {
     headerHeight,
     footerHeight,
     changeIgnoredTrackerPrefixes,
-    ignoredTrackerPrefixesReg,
     menuExpandedKeys
   }
 })

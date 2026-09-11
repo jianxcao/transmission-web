@@ -11,11 +11,22 @@ let updateMessage: ReturnType<typeof message.create> | null = null
 const updating = ref(false)
 
 const { needRefresh, updateServiceWorker } = useRegisterSW({
-  immediate: true,
+  immediate: !import.meta.env.DEV,
   onRegisterError(error) {
     console.error('PWA service worker registration failed', error)
   }
 })
+
+// 开发环境不使用 PWA，但旧版本可能已经注册过 Service Worker；启动时移除它，避免拦截 RPC。
+if (import.meta.env.DEV) {
+  onMounted(() => {
+    void navigator.serviceWorker?.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        void registration.unregister()
+      })
+    })
+  })
+}
 
 function closeUpdateMessage() {
   needRefresh.value = false

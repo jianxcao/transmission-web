@@ -3,12 +3,17 @@ import { rpc } from '@/api/rpc'
 import { useColumns } from '@/composables/useColumns'
 import { useSelection } from '@/composables/useSelection'
 import { useSettingStore } from '@/store/setting'
+import { useSessionStore } from './session'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import {
   buildDirMenuList,
   buildDirMenuTree,
   detailFilterOptions,
+  getTorrentTrackerSites,
+  getTrackerSiteKey,
+  matchesTrackerHost,
+  pruneTrackerSitesCache,
   isFilterTorrents,
   mapToOptions,
   processTorrent,
@@ -66,6 +71,48 @@ const listFields = [
   'peer-limit'
 ]
 
+// 轮询只读取高频变化字段，静态元数据和 tracker 列表按较低频率刷新。
+// Transmission 的 torrent-get 不提供分页参数，因此减少重复字段传输比前端分页更可靠。
+const pollingFields = [
+  'id',
+  'name',
+  'labels',
+  'downloadDir',
+  'bandwidthPriority',
+  'activityDate',
+  'downloadedEver',
+  'error',
+  'errorString',
+  'eta',
+  'haveValid',
+  'leftUntilDone',
+  'peersGettingFromUs',
+  'peersSendingToUs',
+  'percentDone',
+  'queuePosition',
+  'rateDownload',
+  'rateUpload',
+  'secondsSeeding',
+  'sizeWhenDone',
+  'status',
+  'totalSize',
+  'uploadRatio',
+  'uploadedEver',
+  'honorsSessionLimits',
+  'downloadLimited',
+  'downloadLimit',
+  'uploadLimited',
+  'uploadLimit',
+  'peer-limit',
+  'seedIdleLimit',
+  'seedIdleMode',
+  'seedRatioLimit',
+  'seedRatioMode',
+  'sequential_download'
+]
+
+const metadataRefreshInterval = 60_000
+
 const detailFields = [
   'hashString',
   'recheckProgress',
@@ -82,6 +129,12 @@ const detailFields = [
 export const useTorrentStore = defineStore('torrent', () => {
   const torrents = ref<Torrent[]>([])
   const settingStore = useSettingStore()
+  const sessionStore = useSessionStore()
+  const applyingTrackerRules = ref(false)
+  const trackerRuleSignatures = new Map<number, string>()
+  const fetching = ref(false)
+  let trackerRuleApplyPending = false
+  let lastMetadataFetchAt = 0
   // 排序相关
   const sortKey = ref<string>('id') // 默认按添加时间排序
   const sortOrder = ref<'asc' | 'desc'>('desc') // 默认降序
@@ -135,12 +188,13 @@ export const useTorrentStore = defineStore('torrent', () => {
 
     // 目录菜单当前模式（read once，使其参与依赖收集）
     const dirMenuMode = settingStore.setting.dirMenuMode
+    const ignoredTrackerPrefixes = settingStore.setting.ignoredTrackerPrefixes
 
     // 一次循环完成所有计算：统计 + 过滤
     torrents.value.forEach((t, idx) => {
       mapTorrentsIndex[t.id] = idx
       // 将选项全部放到 map 中
-      detailFilterOptions(t, labelsSet, trackerSet, errorStringSet, downloadDirSet, statusSet)
+      detailFilterOptions(t, labelsSet, trackerSet, errorStringSet, downloadDirSet, statusSet, ignoredTrackerPrefixes)
       // 如果通过所有过滤条件，加入结果数组
       if (
         isFilterTorrents(
@@ -151,7 +205,8 @@ export const useTorrentStore = defineStore('torrent', () => {
           trackerFilter,
           errorStringFilter,
           downloadDirFilter,
-          dirMenuMode
+          dirMenuMode,
+          ignoredTrackerPrefixes
         )
       ) {
         filtered.push(t)
@@ -245,20 +300,158 @@ export const useTorrentStore = defineStore('torrent', () => {
     requestScrollToTorrent(targetId)
   }
 
-  async function fetchTorrents() {
-    const fields = listFields
-    const res = await rpc.torrentGet(fields)
-    const old = torrents.value
-    let newRes = res?.arguments?.torrents || []
-    newRes = newRes.map((t) => {
-      let item = processTorrent(t)
-      const index = computedData.value.mapTorrentsIndex[item.id]
-      if (index >= 0) {
-        item = Object.assign({}, old[index], item)
+  function getTrackerHosts(torrent: Torrent) {
+    return getTorrentTrackerSites(torrent, settingStore.setting.ignoredTrackerPrefixes)
+  }
+
+  async function applyTrackerLimitRules(items: Torrent[]) {
+    if (applyingTrackerRules.value) {
+      trackerRuleApplyPending = true
+      return
+    }
+    const rules = (settingStore.setting.trackerLimitRules || []).filter(
+      (rule) =>
+        rule &&
+        rule.enabled &&
+        typeof rule.pattern === 'string' &&
+        rule.pattern.trim() &&
+        (rule.uploadLimit != null || rule.downloadLimit != null)
+    )
+    const itemById = new Map(items.map((item) => [item.id, item]))
+    const grouped = new Map<string, { ids: number[]; args: Record<string, unknown> }>()
+    for (const torrent of items) {
+      const hosts = getTrackerHosts(torrent)
+      const rule = rules.find((candidate) => {
+        const pattern = getTrackerSiteKey(candidate.pattern, settingStore.setting.ignoredTrackerPrefixes)
+        return matchesTrackerHost(hosts, pattern)
+      })
+      const args: Record<string, unknown> = {}
+      if (rule?.uploadLimit != null) {
+        args.uploadLimited = true
+        args.uploadLimit = Math.max(1, Math.round(rule.uploadLimit))
       }
-      return item
-    })
-    torrents.value = newRes
+      if (rule?.downloadLimit != null) {
+        args.downloadLimited = true
+        args.downloadLimit = Math.max(1, Math.round(rule.downloadLimit))
+      }
+      if (Object.keys(args).length === 0) {
+        if (!rule) {
+          trackerRuleSignatures.delete(torrent.id)
+        }
+        continue
+      }
+      const signature = `${rule?.id || 'none'}:${JSON.stringify(args)}`
+      const ruleAlreadyApplied =
+        !!rule &&
+        (rule.uploadLimit == null || (torrent.uploadLimited === true && torrent.uploadLimit === args.uploadLimit)) &&
+        (rule.downloadLimit == null ||
+          (torrent.downloadLimited === true && torrent.downloadLimit === args.downloadLimit))
+      if (trackerRuleSignatures.get(torrent.id) === signature && ruleAlreadyApplied) {
+        continue
+      }
+      if (!rule) {
+        continue
+      }
+      const key = JSON.stringify(args)
+      const group = grouped.get(key) || { ids: [], args }
+      group.ids.push(torrent.id)
+      grouped.set(key, group)
+    }
+    if (grouped.size === 0) {
+      return
+    }
+
+    applyingTrackerRules.value = true
+    try {
+      for (const group of grouped.values()) {
+        await rpc.torrentSet({ ids: group.ids, ...group.args })
+        const argsSignature = JSON.stringify(group.args)
+        for (const id of group.ids) {
+          const item = itemById.get(id)
+          if (item) {
+            Object.assign(item, group.args)
+          }
+          const torrent = item
+          const hosts = torrent ? getTrackerHosts(torrent) : new Set<string>()
+          const rule = torrent
+            ? rules.find((candidate) => {
+                const pattern = getTrackerSiteKey(candidate.pattern, settingStore.setting.ignoredTrackerPrefixes)
+                return matchesTrackerHost(hosts, pattern)
+              })
+            : undefined
+          if (rule) {
+            trackerRuleSignatures.set(id, `${rule.id}:${argsSignature}`)
+          } else {
+            trackerRuleSignatures.delete(id)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to apply tracker limit rules', error)
+    } finally {
+      applyingTrackerRules.value = false
+      if (trackerRuleApplyPending) {
+        trackerRuleApplyPending = false
+        void applyTrackerLimitRules(torrents.value)
+      }
+    }
+  }
+
+  async function fetchTorrents(forceMetadata = false) {
+    if (fetching.value) {
+      return
+    }
+    fetching.value = true
+    try {
+      const refreshMetadata =
+        forceMetadata || torrents.value.length === 0 || Date.now() - lastMetadataFetchAt >= metadataRefreshInterval
+      const listFormat = sessionStore.rpcVersion >= 18 || sessionStore.session?.version?.startsWith('4.') ? 'table' : 'objects'
+      let res = await rpc.torrentGet(refreshMetadata ? listFields : pollingFields, undefined, undefined, listFormat)
+      let fullFetch = refreshMetadata
+      const oldIds = new Set(torrents.value.map((torrent) => torrent.id))
+      // 新增种子可能在轻量轮询期间出现，补一次完整数据，避免列表出现空名称。
+      if (
+        !fullFetch &&
+        res?.arguments?.torrents?.some((torrent) => !oldIds.has(torrent.id) || !torrent.name)
+      ) {
+        res = await rpc.torrentGet(listFields, undefined, undefined, listFormat)
+        fullFetch = true
+      }
+      const old = torrents.value
+      let newRes = res?.arguments?.torrents || []
+      newRes = newRes.map((t) => {
+        const processed = processTorrent(t, fullFetch)
+        let item: Torrent
+        const index = computedData.value.mapTorrentsIndex[processed.id]
+        if (!fullFetch && index >= 0) {
+          const updates = Object.fromEntries(
+            pollingFields
+              .filter((field) => field in processed)
+              .map((field) => [field, processed[field as keyof Torrent]])
+          )
+          item = Object.assign({}, old[index], updates)
+        } else if (index >= 0) {
+          item = Object.assign({}, old[index], processed)
+        } else {
+          item = processed
+        }
+        return item
+      })
+      torrents.value = newRes
+      const activeIds = new Set(newRes.map((t) => t.id))
+      for (const id of trackerRuleSignatures.keys()) {
+        if (!activeIds.has(id)) {
+          trackerRuleSignatures.delete(id)
+        }
+      }
+      pruneTrackerSitesCache(activeIds)
+      if (fullFetch) {
+        lastMetadataFetchAt = Date.now()
+      }
+      void applyTrackerLimitRules(newRes)
+    } finally {
+      fetching.value = false
+    }
   }
 
   async function fetchDetails() {
@@ -290,6 +483,15 @@ export const useTorrentStore = defineStore('torrent', () => {
   watch([search, statusFilter, labelsFilter, trackerFilter, errorStringFilter, downloadDirFilter, sortKey, sortOrder], () => {
     keepVisibleSelectionAndRequestScroll()
   })
+  watch(
+    () => settingStore.setting.trackerLimitRules,
+    () => {
+      if (torrents.value.length > 0) {
+        void applyTrackerLimitRules(torrents.value)
+      }
+    },
+    { deep: true }
+  )
   ;(window as any).torrents = torrents
   return {
     getColumnTitle,
@@ -334,6 +536,7 @@ export const useTorrentStore = defineStore('torrent', () => {
     scrollToTorrentRequest,
     requestScrollToTorrent,
     fetchDetails,
+    applyTrackerLimitRules,
     startDetailPolling,
     stopDetailPolling
   }
