@@ -62,7 +62,11 @@
 
         <div class="info-item">
           <span>{{ t('torrentDetail.general.remaining') }}</span>
-          <span>{{ timeToStr(torrent.eta || 0) }} ({{ formatSize(torrent.leftUntilDone) }})</span>
+          <span
+            >{{ formatEta(torrent.eta, torrent.leftUntilDone, torrent.rateDownload) }} ({{
+              formatSize(torrent.leftUntilDone)
+            }})</span
+          >
         </div>
         <div class="info-item">
           <span>{{ t('torrentDetail.general.wasted') }}</span>
@@ -128,7 +132,21 @@
           </div>
           <div class="info-item">
             <span>{{ t('torrentDetail.general.comment') }}</span>
-            <span class="truncate" :title="torrent.comment">{{ torrent.comment || '-' }}</span>
+            <span class="truncate" :title="torrent.comment">
+              <template v-if="torrent.comment">
+                <template v-for="(part, index) in commentParts" :key="index">
+                  <a
+                    v-if="part.href"
+                    :href="part.href"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="comment-link"
+                  >{{ part.text }}</a>
+                  <template v-else>{{ part.text }}</template>
+                </template>
+              </template>
+              <template v-else>-</template>
+            </span>
           </div>
           <div class="info-item">
             <span>{{ t('torrentDetail.general.completeTime') }}</span>
@@ -163,7 +181,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Torrent } from '@/api/rpc'
-import { formatSpeed, formatSize, timeToStr } from '@/utils'
+import { formatEta, formatSpeed, formatSize, timeToStr } from '@/utils'
 import { getStatusString, Status } from '@/types/tr'
 import { getTorrentProgress } from '@/utils/torrentProgress'
 import { getTorrentError } from '@/store/torrentUtils'
@@ -190,6 +208,41 @@ const errorMessage = computed(
   () => getTorrentError(props.torrent) || props.torrent.errorString || props.torrent.cachedError || ''
 )
 const hasError = computed(() => Boolean(props.torrent.error || errorMessage.value))
+
+interface TextLinkPart {
+  text: string
+  href?: string
+}
+
+function splitCommentLinks(text: string): TextLinkPart[] {
+  const parts: TextLinkPart[] = []
+  const pattern = /https?:\/\/[^\s<>"']+/gi
+  let cursor = 0
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0
+    const punctuation = match[0].match(/[.,;:!?，。；：！？]+$/)?.[0] ?? ''
+    const rawUrl = punctuation ? match[0].slice(0, -punctuation.length) : match[0]
+    try {
+      const url = new URL(rawUrl)
+      if (index > cursor) {
+        parts.push({ text: text.slice(cursor, index) })
+      }
+      parts.push({ text: rawUrl, href: url.href })
+      if (punctuation) {
+        parts.push({ text: punctuation })
+      }
+      cursor = index + match[0].length
+    } catch {
+      // 非法的 http(s) 文本保持原样
+    }
+  }
+  if (cursor < text.length) {
+    parts.push({ text: text.slice(cursor) })
+  }
+  return parts.length > 0 ? parts : [{ text }]
+}
+
+const commentParts = computed(() => splitCommentLinks(props.torrent.comment || ''))
 
 function formatDate(ts?: number) {
   if (!ts) {
@@ -323,6 +376,15 @@ function getWasted() {
   }
   @media (min-width: 1025px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.comment-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  &:hover {
+    opacity: 0.8;
   }
 }
 </style>

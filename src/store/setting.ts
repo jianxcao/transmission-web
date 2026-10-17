@@ -4,7 +4,8 @@ import { useThemeVars, type CustomThemeCommonVars, type ThemeCommonVars } from '
 import { setDomain as setDomainApi, setAuth as setAuthApi } from '@/api/rpc'
 import { setLocale } from '@/i18n'
 
-const DEFAULT_TRACKERS = [
+// 旧版本内置的默认 Tracker。保留此列表仅用于清理已持久化的旧默认值。
+const LEGACY_DEFAULT_TRACKERS = [
   'udp://tracker.opentrackr.org:1337/announce',
   'udp://open.demonii.com:1337/announce',
   'udp://open.stealth.si:80/announce',
@@ -26,6 +27,19 @@ const DEFAULT_TRACKERS = [
   'udp://opentracker.io:6969/announce',
   'udp://open.dstud.io:6969/announce'
 ]
+
+export const isLegacyDefaultTrackerList = (value: unknown): boolean => {
+  const trackers = Array.isArray(value)
+    ? value.map((tracker) => String(tracker))
+    : typeof value === 'string'
+      ? value.split(/\r?\n/)
+      : []
+  const trackerSet = new Set(trackers.map((tracker) => tracker.trim()).filter(Boolean))
+  return (
+    trackerSet.size === LEGACY_DEFAULT_TRACKERS.length &&
+    LEGACY_DEFAULT_TRACKERS.every((tracker) => trackerSet.has(tracker))
+  )
+}
 
 export interface IPolling {
   sessionInterval: number
@@ -63,7 +77,8 @@ export const useSettingStore = defineStore('setting', () => {
     {
       theme: 'light',
       language: 'zh-CN',
-      defaultTrackers: DEFAULT_TRACKERS,
+      // 默认不追加 Tracker；需要时由用户在设置中显式配置。
+      defaultTrackers: [] as string[],
       domain: window.location.origin,
       savePassword: false,
       singleLine: true,
@@ -85,7 +100,9 @@ export const useSettingStore = defineStore('setting', () => {
       // 按 tracker 域名匹配的种子级限速规则（Transmission 3 / 旧版本兼容；4.0+ 使用服务端带宽组）
       trackerLimitRules: [] as TrackerLimitRule[],
       // 是否已把本地规则迁移到服务端带宽组
-      trackerLimitRulesMigrated: false
+      trackerLimitRulesMigrated: false,
+      // 是否已清理旧版本内置的默认 Tracker（包括服务端 session 设置）
+      legacyDefaultTrackersMigrated: false
     },
     localStorage,
     { mergeDefaults: true, deep: true, writeDefaults: true }
@@ -97,6 +114,10 @@ export const useSettingStore = defineStore('setting', () => {
     ['status', 'labels', 'dir'].every((key) => setting.value.menuExpandedKeys.includes(key))
   ) {
     setting.value.menuExpandedKeys = ['status', 'labels']
+  }
+  // 清除旧版本首次使用时写入 localStorage 的内置 Tracker 列表。
+  if (isLegacyDefaultTrackerList(setting.value.defaultTrackers)) {
+    setting.value.defaultTrackers = []
   }
   // 兼容早期版本可能写入的 null/非法规则，避免页面初始化时调用 trim 崩溃。
   const normalizedTrackerRules = normalizeTrackerLimitRules(setting.value.trackerLimitRules)

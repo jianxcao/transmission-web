@@ -363,9 +363,24 @@ export const sortTorrents = function (
   sortKey: globalThis.Ref<string, string>,
   sortOrder: globalThis.Ref<string, string>
 ) {
+  const getSortValue = (torrent: Torrent) => {
+    if (sortKey.value === 'percentDone') {
+      return getTorrentProgress(torrent)
+    }
+    if (sortKey.value === 'eta') {
+      if (torrent.leftUntilDone <= 0) {
+        return 0
+      }
+      if (Number.isFinite(torrent.eta) && torrent.eta! >= 0) {
+        return torrent.eta
+      }
+      return torrent.rateDownload > 0 ? torrent.leftUntilDone / torrent.rateDownload : Number.POSITIVE_INFINITY
+    }
+    return torrent[sortKey.value as keyof Torrent]
+  }
   filtered.sort((a, b) => {
-    const aValue = sortKey.value === 'percentDone' ? getTorrentProgress(a) : a[sortKey.value as keyof Torrent]
-    const bValue = sortKey.value === 'percentDone' ? getTorrentProgress(b) : b[sortKey.value as keyof Torrent]
+    const aValue = getSortValue(a)
+    const bValue = getSortValue(b)
     // 处理 undefined/null
     if (aValue == null && bValue == null) {
       return 0
@@ -378,7 +393,9 @@ export const sortTorrents = function (
     }
     // 数字、字符串、日期
     let result = 0
-    if (typeof aValue === 'number' && typeof bValue === 'number') {
+    if (aValue === bValue) {
+      result = 0
+    } else if (typeof aValue === 'number' && typeof bValue === 'number') {
       result = sortOrder.value === 'asc' ? aValue - bValue : bValue - aValue
     } else if (typeof aValue === 'string' && typeof bValue === 'string') {
       result = sortOrder.value === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)

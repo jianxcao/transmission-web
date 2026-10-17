@@ -53,6 +53,7 @@ export const defaultVisibleColumns = [
   'uploadedEver',
   'percentDone',
   'rateDownload',
+  'eta',
   'rateUpload',
   'status',
   'addedDate',
@@ -63,6 +64,8 @@ export const defaultVisibleColumns = [
   'labels',
   'secondsSeeding'
 ]
+
+const COLUMN_CONFIG_VERSION = 1
 
 export function useColumns(storageKey = 'torrent-columns') {
   const { t } = useI18n()
@@ -79,6 +82,11 @@ export function useColumns(storageKey = 'torrent-columns') {
       }
     })
   )
+  const columnConfigVersion = useStorage<number>('torrent-columns-version', 0)
+  if (columnConfigVersion.value < COLUMN_CONFIG_VERSION) {
+    columns.value = columns.value.map((col) => (col.key === 'eta' ? { ...col, visible: true } : col))
+    columnConfigVersion.value = COLUMN_CONFIG_VERSION
+  }
 
   // name 列默认显示
   function setVisibleColumns(cols: ColumnConfig[]) {

@@ -120,6 +120,45 @@ export function timeToStr(value: number, coarse: boolean = true): string {
   return s
 }
 
+function formatEtaDuration(value: number): string {
+  const seconds = Math.max(0, Math.floor(value))
+  if (seconds === 0) {
+    return '0'
+  }
+  if (seconds < 60) {
+    return `${seconds}s`
+  }
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes}m`
+  }
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    return `${hours}h ${minutes % 60}m`
+  }
+  const days = Math.floor(hours / 24)
+  if (days < 365) {
+    return `${days}d ${hours % 24}h`
+  }
+  const years = Math.floor(days / 365)
+  return `${years}y ${days % 365}d`
+}
+
+/** 按 qBittorrent 的风格格式化下载剩余时间。 */
+export function formatEta(eta: number | null | undefined, leftUntilDone = 0, rateDownload = 0): string {
+  if (leftUntilDone <= 0) {
+    return '0'
+  }
+  const seconds = Number(eta)
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return formatEtaDuration(seconds)
+  }
+  if (Number.isFinite(rateDownload) && rateDownload > 0) {
+    return formatEtaDuration(Math.ceil(leftUntilDone / rateDownload))
+  }
+  return '∞'
+}
+
 export function ensurePathDelimiter(...paths: string[]): string {
   if (paths.length === 0) {
     return ''
