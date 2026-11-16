@@ -12,9 +12,11 @@
         :title="item.title"
         @click="openSpeedLimitDialog(item.direction)"
       >
-        <n-icon :component="item.icon" :color="item.color" size="19" />
-        <span>{{ item.rate }}</span>
-        <span v-if="item.limit" :class="$style.limit">[{{ item.limit }}]</span>
+        <n-icon :component="item.icon" :color="item.color" size="19" :class="$style.transferIcon" />
+        <span :class="$style.transferSpeed">
+          <span>{{ item.rate }}</span>
+          <span v-if="item.limit" :class="$style.limit">[{{ item.limit }}]</span>
+        </span>
         <span :class="$style.total">({{ item.total }})</span>
       </button>
       <n-button
@@ -388,16 +390,37 @@ const infoTags = computed(() => [
   }
 }
 
+.transferIcon {
+  flex-shrink: 0;
+}
+
+.transferSpeed {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .limit {
+  margin-left: 4px;
   color: var(--warning-color, #d97706);
 }
 
 @media (max-width: 720px) {
+  .actions {
+    min-width: 0;
+    flex-shrink: 1;
+
+    > :not(.transfer) {
+      flex-shrink: 0;
+    }
+  }
+
   .total {
     display: none;
   }
 
   .transfer {
+    min-width: 0;
     padding: 0 6px;
   }
 }

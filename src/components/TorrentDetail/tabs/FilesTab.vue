@@ -604,11 +604,12 @@ const handleFilePriority = async (fileIndex: number, priority: number) => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    height: 30px;
+    height: 34px;
     padding: 0 8px 0 12px;
     font-size: 12px;
-    font-weight: 500;
-    color: var(--text-color-3);
+    font-weight: 600;
+    color: var(--text-color-2);
+    background-color: rgba(128, 128, 128, 0.08);
     border-bottom: 1px solid var(--border-color);
 
     .col-name {
@@ -694,28 +695,45 @@ const handleFilePriority = async (fileIndex: number, priority: number) => {
     width: 100%;
 
     .v-vl-visible-items,
-    .n-tree-node-wrapper,
-    .n-tree-node {
+    .n-tree-node-wrapper {
       width: 100%;
       min-width: 0;
     }
 
-    .n-tree-node-content {
-      height: 32px;
-      padding-right: 8px;
+    .n-tree-node {
+      width: 100%;
       min-width: 0;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0;
+    }
+
+    .n-tree-node-content {
+      flex: 1 1 0% !important;
+      width: 0;
+      min-width: 0 !important;
+      height: 34px;
+      padding-right: 8px;
+      display: flex !important;
+      align-items: center !important;
       overflow: hidden;
 
+      .n-tree-node-content__prefix {
+        flex-shrink: 0;
+      }
+
       .n-tree-node-content__text {
-        flex: 1;
+        flex: 1 1 0% !important;
+        width: 0;
         display: flex;
         align-items: center;
-        min-width: 0;
+        min-width: 0 !important;
         overflow: hidden;
       }
 
       .n-tree-node-content__suffix {
-        flex-shrink: 0;
+        flex: 0 0 auto !important;
         margin-left: 8px;
       }
     }
