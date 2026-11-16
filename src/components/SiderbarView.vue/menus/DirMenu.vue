@@ -5,7 +5,7 @@
       <span class="dir-menu-label">{{ $t('sidebar.directory') }}</span>
       <n-icon class="dir-menu-arrow" :class="{ 'is-expanded': groupExpanded }" :component="ChevronForward" :size="14" />
     </button>
-    <div v-show="groupExpanded">
+    <div v-if="groupExpanded">
       <button
         type="button"
         class="dir-menu-row"

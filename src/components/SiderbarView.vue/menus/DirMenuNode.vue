@@ -16,7 +16,7 @@
         <n-icon class="dir-menu-arrow" :class="{ 'is-expanded': expanded }" :component="ChevronForward" :size="14" />
       </button>
     </div>
-    <div v-show="hasChildren && expanded">
+    <div v-if="hasChildren && expanded">
       <DirMenuNode
         v-for="child in option.dirChildren"
         :key="child.key"
