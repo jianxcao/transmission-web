@@ -3,6 +3,7 @@ import { matchesSiteKey, normalizeSiteKey } from '@/utils/siteLimitRules'
 import { statusFilterFunMap, statusFilters } from '@/const/status'
 import { Status } from '@/types/tr'
 import { getTorrentProgress } from '@/utils/torrentProgress'
+import { getEtaSeconds } from '@/utils/torrentEta'
 import { ShuffleOutline } from '@vicons/ionicons5'
 import i18n from '@/i18n'
 import { isFunction } from 'lodash-es'
@@ -368,13 +369,7 @@ export const sortTorrents = function (
       return getTorrentProgress(torrent)
     }
     if (sortKey.value === 'eta') {
-      if (torrent.leftUntilDone <= 0) {
-        return 0
-      }
-      if (Number.isFinite(torrent.eta) && torrent.eta! >= 0) {
-        return torrent.eta
-      }
-      return torrent.rateDownload > 0 ? torrent.leftUntilDone / torrent.rateDownload : Number.POSITIVE_INFINITY
+      return getEtaSeconds(torrent)
     }
     return torrent[sortKey.value as keyof Torrent]
   }

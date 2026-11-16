@@ -14,8 +14,9 @@ export const useSessionStore = defineStore('session', () => {
     if (settingStore.setting.legacyDefaultTrackersMigrated) {
       return
     }
-    settingStore.setting.legacyDefaultTrackersMigrated = true
+    // 仅当服务端确为旧默认列表时才需要清理；否则直接标记完成，避免重复检查。
     if (!isLegacyDefaultTrackerList(session.value?.['default-trackers'])) {
+      settingStore.setting.legacyDefaultTrackersMigrated = true
       return
     }
     try {
@@ -23,6 +24,8 @@ export const useSessionStore = defineStore('session', () => {
       if (session.value) {
         session.value['default-trackers'] = ''
       }
+      // 清理成功后再落标记，失败时下次仍会重试。
+      settingStore.setting.legacyDefaultTrackersMigrated = true
     } catch (error) {
       console.warn('Failed to clear legacy default trackers', error)
     }

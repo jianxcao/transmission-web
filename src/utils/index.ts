@@ -1,5 +1,6 @@
 import { NIcon } from 'naive-ui'
 import { h } from 'vue'
+import { getEtaSeconds } from './torrentEta'
 
 /**
  * 从 url 字符串中提取域名（host）
@@ -146,17 +147,15 @@ function formatEtaDuration(value: number): string {
 
 /** 按 qBittorrent 的风格格式化下载剩余时间。 */
 export function formatEta(eta: number | null | undefined, leftUntilDone = 0, rateDownload = 0): string {
-  if (leftUntilDone <= 0) {
+  const seconds = getEtaSeconds({ eta, leftUntilDone, rateDownload })
+  if (seconds <= 0) {
     return '0'
   }
-  const seconds = Number(eta)
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return formatEtaDuration(seconds)
+  if (!Number.isFinite(seconds)) {
+    return '∞'
   }
-  if (Number.isFinite(rateDownload) && rateDownload > 0) {
-    return formatEtaDuration(Math.ceil(leftUntilDone / rateDownload))
-  }
-  return '∞'
+  // 剩余时间不足 1 秒时向上取整，避免正在下载的种子显示为 0。
+  return formatEtaDuration(Math.ceil(seconds))
 }
 
 export function ensurePathDelimiter(...paths: string[]): string {

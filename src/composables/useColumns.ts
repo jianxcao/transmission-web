@@ -84,7 +84,15 @@ export function useColumns(storageKey = 'torrent-columns') {
   )
   const columnConfigVersion = useStorage<number>('torrent-columns-version', 0)
   if (columnConfigVersion.value < COLUMN_CONFIG_VERSION) {
-    columns.value = columns.value.map((col) => (col.key === 'eta' ? { ...col, visible: true } : col))
+    const existing = columns.value.some((col) => col.key === 'eta')
+    if (!existing) {
+      const etaColumn = allColumns.find((col) => col.key === 'eta')
+      if (etaColumn) {
+        columns.value = [...columns.value, { key: 'eta', width: etaColumn.minWidth, visible: true }]
+      }
+    } else {
+      columns.value = columns.value.map((col) => (col.key === 'eta' ? { ...col, visible: true } : col))
+    }
     columnConfigVersion.value = COLUMN_CONFIG_VERSION
   }
 

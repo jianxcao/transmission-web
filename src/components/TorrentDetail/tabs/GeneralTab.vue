@@ -214,24 +214,63 @@ interface TextLinkPart {
   href?: string
 }
 
+// RFC 3986 允许的 URL 字符集。刻意不含中文字符与空白，
+// 避免把紧跟 URL 的中文吃进 host 后触发 punycode 或解析失败。
+const URL_PATTERN = /https?:\/\/[A-Za-z0-9\-._~:/?#[\]@!$&'()*+,;=%]+/g
+
+// 剥除 URL 尾部不成对的右括号（如 Markdown 式链接或普通句尾括号）。
+function trimTrailingBrackets(url: string): string {
+  let result = url
+  for (;;) {
+    const last = result[result.length - 1]
+    if (last !== ')' && last !== ']' && last !== '}') {
+      break
+    }
+    const open = last === ')' ? '(' : last === ']' ? '[' : '{'
+    const opens = (result.match(new RegExp(`\\${open}`, 'g')) || []).length
+    const closes = (result.match(new RegExp(`\\${last}`, 'g')) || []).length
+    if (closes <= opens) {
+      break
+    }
+    result = result.slice(0, -1)
+  }
+  return result
+}
+
 function splitCommentLinks(text: string): TextLinkPart[] {
   const parts: TextLinkPart[] = []
-  const pattern = /https?:\/\/[^\s<>"']+/gi
   let cursor = 0
-  for (const match of text.matchAll(pattern)) {
+  for (const match of text.matchAll(URL_PATTERN)) {
     const index = match.index ?? 0
-    const punctuation = match[0].match(/[.,;:!?，。；：！？]+$/)?.[0] ?? ''
-    const rawUrl = punctuation ? match[0].slice(0, -punctuation.length) : match[0]
+    const full = match[0]
+
+    // 尾部标点（中英文）不属于 URL，剥除后仍作为普通文本渲染。
+    const punctMatch = full.match(/[.,;:!?，。；：！？]+$/)
+    const punct = punctMatch?.[0] ?? ''
+    const withoutPunct = punct ? full.slice(0, -punct.length) : full
+
+    const rawUrl = trimTrailingBrackets(withoutPunct)
+    const brackets = withoutPunct.slice(rawUrl.length)
+
+    if (!rawUrl) {
+      continue
+    }
     try {
       const url = new URL(rawUrl)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        continue
+      }
       if (index > cursor) {
         parts.push({ text: text.slice(cursor, index) })
       }
       parts.push({ text: rawUrl, href: url.href })
-      if (punctuation) {
-        parts.push({ text: punctuation })
+      if (brackets) {
+        parts.push({ text: brackets })
       }
-      cursor = index + match[0].length
+      if (punct) {
+        parts.push({ text: punct })
+      }
+      cursor = index + full.length
     } catch {
       // 非法的 http(s) 文本保持原样
     }
