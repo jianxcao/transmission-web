@@ -306,7 +306,7 @@
     "dirMenuMode": "Directory Menu Mode",
     "dirMenuModeList": "List",
     "dirMenuModeTree": "Tree",
-    "dirMenuModeHint": "List: flat view of all download directories. Tree: collapse by levels and expand subdirectories manually.",
+    "dirMenuModeHint": "List: flat view of all download directories with exact matching. Tree: collapse by levels; selecting a directory includes torrents in that directory and its subdirectories.",
     "enableDownloadDirSuggestions": "Download Directory History Suggestions",
     "enableDownloadDirSuggestionsHint": "When disabled, adding a torrent or changing the directory will no longer suggest historical download paths. Only the custom directories listed below will be shown.",
     "customDownloadDirs": "Frequently Used Download Directories",

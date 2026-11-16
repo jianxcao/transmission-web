@@ -27,6 +27,7 @@ declare module 'vue' {
     DefaultCell: typeof import('./src/components/TorrentList/cells/DefaultCell.vue')['default']
     DeleteTorrentDialog: typeof import('./src/components/dialog/DeleteTorrentDialog.vue')['default']
     DirMenu: typeof import('./src/components/SiderbarView.vue/menus/DirMenu.vue')['default']
+    DirMenuNode: typeof import('./src/components/SiderbarView.vue/menus/DirMenuNode.vue')['default']
     DownloadSettings: typeof import('./src/components/dialog/settings/DownloadSettings.vue')['default']
     ErrMenu: typeof import('./src/components/SiderbarView.vue/menus/ErrMenu.vue')['default']
     FileDropOverlay: typeof import('./src/components/common/FileDropOverlay.vue')['default']

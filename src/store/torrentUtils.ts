@@ -150,7 +150,9 @@ export interface IDirMenuOption {
   key: string
   label: string
   count: number
-  children?: IDirMenuOption[]
+  // 树形菜单里有子目录的节点仍要能被选中（筛选自身及子目录），
+  // 因此子节点挂在这个字段上，而不是 n-menu 用来判断「只能展开」的 children
+  dirChildren?: IDirMenuOption[]
 }
 
 const lastSegmentOf = (path: string): string => {
@@ -238,7 +240,7 @@ export const buildDirMenuTree = (
       count: node.totalCount
     }
     if (children.length > 0) {
-      result.children = children
+      result.dirChildren = children
     }
     return result
   }
@@ -347,7 +349,10 @@ export const isFilterTorrents = function (
     const filterPath = downloadDirFilter.value
     const torrentDir = t.downloadDir
     if (dirMenuMode === 'tree') {
-      if (torrentDir !== filterPath && !torrentDir.startsWith(`${filterPath}/`)) {
+      const normalizedFilter = filterPath.replace(/\/+$/, '')
+      const normalizedDir = torrentDir.replace(/\/+$/, '')
+      const matchesDir = normalizedDir === normalizedFilter || normalizedDir.startsWith(`${normalizedFilter}/`)
+      if (!matchesDir) {
         shouldInclude = false
       }
     } else if (torrentDir !== filterPath) {
