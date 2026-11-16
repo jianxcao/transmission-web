@@ -62,7 +62,9 @@
 
         <div class="info-item">
           <span>{{ t('torrentDetail.general.remaining') }}</span>
-          <span>{{ timeToStr(torrent.eta || 0) }} ({{ formatSize(torrent.leftUntilDone) }})</span>
+          <span
+            >{{ formatEta(torrent) }} ({{ formatSize(torrent.leftUntilDone) }})</span
+          >
         </div>
         <div class="info-item">
           <span>{{ t('torrentDetail.general.wasted') }}</span>
@@ -128,7 +130,21 @@
           </div>
           <div class="info-item">
             <span>{{ t('torrentDetail.general.comment') }}</span>
-            <span class="truncate" :title="torrent.comment">{{ torrent.comment || '-' }}</span>
+            <span class="truncate" :title="torrent.comment">
+              <template v-if="torrent.comment">
+                <template v-for="(part, index) in commentParts" :key="index">
+                  <a
+                    v-if="part.href"
+                    :href="part.href"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="comment-link"
+                  >{{ part.text }}</a>
+                  <template v-else>{{ part.text }}</template>
+                </template>
+              </template>
+              <template v-else>-</template>
+            </span>
           </div>
           <div class="info-item">
             <span>{{ t('torrentDetail.general.completeTime') }}</span>
@@ -163,7 +179,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Torrent } from '@/api/rpc'
-import { formatSpeed, formatSize, timeToStr } from '@/utils'
+import { formatEta, formatSpeed, formatSize, timeToStr } from '@/utils'
 import { getStatusString, Status } from '@/types/tr'
 import { getTorrentProgress } from '@/utils/torrentProgress'
 import { getTorrentError } from '@/store/torrentUtils'
@@ -190,6 +206,80 @@ const errorMessage = computed(
   () => getTorrentError(props.torrent) || props.torrent.errorString || props.torrent.cachedError || ''
 )
 const hasError = computed(() => Boolean(props.torrent.error || errorMessage.value))
+
+interface TextLinkPart {
+  text: string
+  href?: string
+}
+
+// RFC 3986 允许的 URL 字符集。刻意不含中文字符与空白，
+// 避免把紧跟 URL 的中文吃进 host 后触发 punycode 或解析失败。
+const URL_PATTERN = /https?:\/\/[A-Za-z0-9\-._~:/?#[\]@!$&'()*+,;=%]+/g
+
+// 剥除 URL 尾部不成对的右括号（如 Markdown 式链接或普通句尾括号）。
+function trimTrailingBrackets(url: string): string {
+  let result = url
+  for (;;) {
+    const last = result[result.length - 1]
+    if (last !== ')' && last !== ']' && last !== '}') {
+      break
+    }
+    const open = last === ')' ? '(' : last === ']' ? '[' : '{'
+    const opens = (result.match(new RegExp(`\\${open}`, 'g')) || []).length
+    const closes = (result.match(new RegExp(`\\${last}`, 'g')) || []).length
+    if (closes <= opens) {
+      break
+    }
+    result = result.slice(0, -1)
+  }
+  return result
+}
+
+function splitCommentLinks(text: string): TextLinkPart[] {
+  const parts: TextLinkPart[] = []
+  let cursor = 0
+  for (const match of text.matchAll(URL_PATTERN)) {
+    const index = match.index ?? 0
+    const full = match[0]
+
+    // 尾部标点（中英文）不属于 URL，剥除后仍作为普通文本渲染。
+    const punctMatch = full.match(/[.,;:!?，。；：！？]+$/)
+    const punct = punctMatch?.[0] ?? ''
+    const withoutPunct = punct ? full.slice(0, -punct.length) : full
+
+    const rawUrl = trimTrailingBrackets(withoutPunct)
+    const brackets = withoutPunct.slice(rawUrl.length)
+
+    if (!rawUrl) {
+      continue
+    }
+    try {
+      const url = new URL(rawUrl)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        continue
+      }
+      if (index > cursor) {
+        parts.push({ text: text.slice(cursor, index) })
+      }
+      parts.push({ text: rawUrl, href: url.href })
+      if (brackets) {
+        parts.push({ text: brackets })
+      }
+      if (punct) {
+        parts.push({ text: punct })
+      }
+      cursor = index + full.length
+    } catch {
+      // 非法的 http(s) 文本保持原样
+    }
+  }
+  if (cursor < text.length) {
+    parts.push({ text: text.slice(cursor) })
+  }
+  return parts.length > 0 ? parts : [{ text }]
+}
+
+const commentParts = computed(() => splitCommentLinks(props.torrent.comment || ''))
 
 function formatDate(ts?: number) {
   if (!ts) {
@@ -323,6 +413,15 @@ function getWasted() {
   }
   @media (min-width: 1025px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.comment-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  &:hover {
+    opacity: 0.8;
   }
 }
 </style>

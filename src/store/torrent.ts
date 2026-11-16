@@ -87,6 +87,7 @@ const pollingFields = [
   'eta',
   'haveValid',
   'leftUntilDone',
+  'metadataPercentComplete',
   'peersGettingFromUs',
   'peersSendingToUs',
   'percentDone',
