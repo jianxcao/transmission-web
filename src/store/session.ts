@@ -8,6 +8,7 @@ import { ref } from 'vue'
 export const useSessionStore = defineStore('session', () => {
   const session = ref<SessionArguments | null>(null)
   const settingStore = useSettingStore()
+  let sessionRevision = 0
   // 注意我们这里最低支持 17的rpc 版本
   const rpcVersion = computed(() => session.value?.['rpc-version'] || 17)
   async function clearLegacyDefaultTrackers(endpoint: string, currentSession: SessionArguments) {
@@ -34,10 +35,11 @@ export const useSessionStore = defineStore('session', () => {
   }
   async function fetchSession(retry = true) {
     const domain = settingStore.setting.domain
+    const revision = sessionRevision
     try {
       const res = await rpc.sessionGet()
-      // 忽略切换服务端前发出的请求，避免拿旧响应清理新的服务端。
-      if (domain !== settingStore.setting.domain) {
+      // 忽略切换服务端或备用速度前发出的旧请求。
+      if (domain !== settingStore.setting.domain || revision !== sessionRevision) {
         return false
       }
       if (res?.arguments) {
@@ -61,17 +63,27 @@ export const useSessionStore = defineStore('session', () => {
     return false
   }
   async function toggleAltSpeed() {
+    const domain = settingStore.setting.domain
     const next = !Boolean(session.value?.['alt-speed-enabled'])
-    const res = await rpc.sessionSet({ 'alt-speed-enabled': next })
-    if (res?.result !== 'success') {
-      throw new Error(res?.result || 'Failed to toggle alt speed')
+    sessionRevision += 1
+    try {
+      const res = await rpc.sessionSet({ 'alt-speed-enabled': next })
+      if (res?.result !== 'success') {
+        throw new Error(res?.result || 'Failed to toggle alt speed')
+      }
+      if (domain !== settingStore.setting.domain) {
+        throw new Error('Server changed while toggling alt speed')
+      }
+      if (session.value) {
+        session.value['alt-speed-enabled'] = next
+      } else {
+        await fetchSession()
+      }
+      return next
+    } finally {
+      // 切换过程中发出的轮询也可能携带旧状态。
+      sessionRevision += 1
     }
-    if (session.value) {
-      session.value['alt-speed-enabled'] = next
-    } else {
-      await fetchSession()
-    }
-    return next
   }
 
   const interval = computed(() => settingStore.setting.polling.sessionInterval * 1000)
