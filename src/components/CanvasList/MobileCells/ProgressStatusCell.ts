@@ -4,7 +4,7 @@ import { fitText, getTextWidth, roundRect } from '../cells/utils'
 import { MOBILE_LINE_MARGIN, MOBILE_PROGRESS_HEIGHT } from '../store/mobileUtils'
 import type { MobileCellComponent, MobileCellHeightCalculator, MobileCellRenderer } from './types'
 import { rowDark } from 'naive-ui/es/legacy-grid/styles'
-import { getTorrentProgress } from '@/utils/torrentProgress'
+import { getProgressPercentFixed, getTorrentProgress, isTorrentComplete } from '@/utils/torrentProgress'
 
 // 获取状态颜色和背景色
 function getStatusColors(
@@ -82,14 +82,13 @@ function drawProgressBar(
 // 绘制进度百分比文字（在指定区域内右对齐）
 function drawProgressText(
   ctx: CanvasRenderingContext2D,
-  progress: number,
+  progressText: string,
   x: number,
   y: number,
   width: number,
   height: number,
   theme: ThemeCommonVars
 ) {
-  const progressText = `${(progress * 100).toFixed(1)}%`
   ctx.font = `${theme.fontSizeMedium} ${theme.fontFamily}`
   ctx.fillStyle = theme.textColorBase
   ctx.textAlign = 'right'
@@ -177,7 +176,8 @@ const render: MobileCellRenderer = ({ ctx, row, state, theme }) => {
   )
 
   // 绘制百分比文字（在分配的区域内居中）
-  drawProgressText(ctx, percentDone, progressTextX, state.y, progressTextWidth, MOBILE_PROGRESS_HEIGHT, theme)
+  const progressText = `${getProgressPercentFixed(percentDone, 1, isTorrentComplete(row))}%`
+  drawProgressText(ctx, progressText, progressTextX, state.y, progressTextWidth, MOBILE_PROGRESS_HEIGHT, theme)
 
   // 绘制状态标签
   const tagY = state.y + (MOBILE_PROGRESS_HEIGHT - 18) / 2 // 18是标签高度，居中对齐

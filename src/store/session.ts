@@ -60,8 +60,22 @@ export const useSessionStore = defineStore('session', () => {
     }
     return false
   }
+  async function toggleAltSpeed() {
+    const next = !Boolean(session.value?.['alt-speed-enabled'])
+    const res = await rpc.sessionSet({ 'alt-speed-enabled': next })
+    if (res?.result !== 'success') {
+      throw new Error(res?.result || 'Failed to toggle alt speed')
+    }
+    if (session.value) {
+      session.value['alt-speed-enabled'] = next
+    } else {
+      await fetchSession()
+    }
+    return next
+  }
+
   const interval = computed(() => settingStore.setting.polling.sessionInterval * 1000)
   const { pause: stopPolling, resume: startPolling } = useIntervalFn(fetchSession, interval, { immediate: false })
 
-  return { session, fetchSession, rpcVersion, startPolling, stopPolling }
+  return { session, fetchSession, toggleAltSpeed, rpcVersion, startPolling, stopPolling }
 })
