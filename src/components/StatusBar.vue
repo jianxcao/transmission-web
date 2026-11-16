@@ -17,6 +17,24 @@
         <span v-if="item.limit" :class="$style.limit">[{{ item.limit }}]</span>
         <span :class="$style.total">({{ item.total }})</span>
       </button>
+      <n-button
+        :type="altSpeedEnabled ? 'warning' : 'default'"
+        :secondary="altSpeedEnabled"
+        :quaternary="!altSpeedEnabled"
+        circle
+        size="small"
+        :disabled="!session"
+        :loading="togglingAltSpeed"
+        :title="altSpeedTooltip"
+        :aria-label="altSpeedTooltip"
+        :aria-pressed="altSpeedEnabled"
+        class="flex items-center justify-center"
+        @click="onToggleAltSpeed"
+      >
+        <template #icon>
+          <n-icon :component="SpeedometerIcon" />
+        </template>
+      </n-button>
       <n-popover v-if="trackerSpeedStats.length > 0" trigger="click" placement="top-end">
         <template #trigger>
           <n-button
@@ -81,7 +99,14 @@ import GlobalSpeedLimitDialog from '@/components/dialog/GlobalSpeedLimitDialog.v
 import { useSessionStore, useSettingStore, useSiteLimitStore, useStatsStore, useTorrentStore } from '@/store'
 import { formatSize, formatSpeed } from '@/utils'
 import { toSiteGroupName } from '@/utils/siteLimitRules'
-import { InformationCircle as InfoIcon, Moon as MoonIcon, Sunny as SunIcon, WifiSharp } from '@vicons/ionicons5'
+import {
+  InformationCircle as InfoIcon,
+  Moon as MoonIcon,
+  SpeedometerOutline as SpeedometerIcon,
+  Sunny as SunIcon,
+  WifiSharp
+} from '@vicons/ionicons5'
+import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import { getTorrentTrackerSites, getTrackerSiteKey, matchesTrackerHost } from '@/store/torrentUtils'
 
@@ -94,6 +119,7 @@ const torrentStore = useTorrentStore()
 const settingStore = useSettingStore()
 const siteLimitStore = useSiteLimitStore()
 const statsStore = useStatsStore()
+const message = useMessage()
 const { t: $t } = useI18n()
 
 const session = computed(() => sessionStore.session)
@@ -221,6 +247,29 @@ const serverHost = computed(() => settingStore.serverHost)
 const isDark = computed(() => settingStore.setting.theme === 'dark')
 function onToggleTheme() {
   settingStore.setTheme(isDark.value ? 'light' : 'dark')
+}
+
+const togglingAltSpeed = ref(false)
+const altSpeedEnabled = computed(() => Boolean(session.value?.['alt-speed-enabled']))
+const altSpeedTooltip = computed(() => {
+  const down = formatSpeed((Number(session.value?.['alt-speed-down']) || 0) * 1024)
+  const up = formatSpeed((Number(session.value?.['alt-speed-up']) || 0) * 1024)
+  return $t(altSpeedEnabled.value ? 'statusBar.altSpeedOn' : 'statusBar.altSpeedOff', { down, up })
+})
+async function onToggleAltSpeed() {
+  if (togglingAltSpeed.value) {
+    return
+  }
+  togglingAltSpeed.value = true
+  try {
+    const enabled = await sessionStore.toggleAltSpeed()
+    statsStore.fetchStats()
+    message.success($t(enabled ? 'statusBar.altSpeedEnabledMsg' : 'statusBar.altSpeedDisabledMsg'))
+  } catch {
+    message.error($t('statusBar.altSpeedToggleFailed'))
+  } finally {
+    togglingAltSpeed.value = false
+  }
 }
 
 // 关于弹窗（naive-ui n-dialog）

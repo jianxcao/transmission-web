@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Torrent } from '@/api/rpc'
-import { getTorrentProgress } from '@/utils/torrentProgress'
+import { getProgressPercent, getTorrentProgress, isTorrentComplete } from '@/utils/torrentProgress'
 interface Column {
   key: string
   title: string
@@ -10,7 +10,7 @@ interface Column {
 const props = defineProps<{ value: number; row: Torrent; col: Column }>()
 
 const percentage = computed(() => {
-  return Math.round(getTorrentProgress(props.row) * 100)
+  return getProgressPercent(getTorrentProgress(props.row), isTorrentComplete(props.row))
 })
 const active = computed(() => {
   return props.row.rateDownload > 0 || props.row.rateUpload > 0

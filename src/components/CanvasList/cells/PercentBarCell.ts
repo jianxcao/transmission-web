@@ -3,7 +3,7 @@ import type { ColumnConfig } from '@/composables/useColumns'
 import { PADDING_X } from '../store/utils'
 import { roundRect, roundRectLeft } from './utils'
 import { useSettingStore } from '@/store'
-import { getTorrentProgress } from '@/utils/torrentProgress'
+import { getProgressPercent, getTorrentProgress, isTorrentComplete } from '@/utils/torrentProgress'
 
 export default function renderPercentBarCell(
   ctx: CanvasRenderingContext2D,
@@ -19,7 +19,7 @@ export default function renderPercentBarCell(
   const barRadius = height / 3
   const barX = x + PADDING_X
   const barY = y + (rowHeight - height) / 2
-  const percent = Math.round(getTorrentProgress(row) * 100)
+  const percent = getProgressPercent(getTorrentProgress(row), isTorrentComplete(row))
   const percentWidth = Math.max((width * percent) / 100, 0)
   const active = row.rateDownload > 0 || row.rateUpload > 0
   const theme = settingStore.themeVars

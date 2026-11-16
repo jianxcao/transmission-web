@@ -181,7 +181,7 @@ import { computed } from 'vue'
 import type { Torrent } from '@/api/rpc'
 import { formatEta, formatSpeed, formatSize, timeToStr } from '@/utils'
 import { getStatusString, Status } from '@/types/tr'
-import { getTorrentProgress } from '@/utils/torrentProgress'
+import { getProgressPercent, getTorrentProgress, isTorrentComplete } from '@/utils/torrentProgress'
 import { getTorrentError } from '@/store/torrentUtils'
 import { getTagThemeColor } from '@/utils/tagColor'
 import { useSettingStore } from '@/store'
@@ -200,8 +200,9 @@ const isChecking = computed(
   () => props.torrent.status === Status.queuedToVerify || props.torrent.status === Status.verifying
 )
 const progress = computed(() => getTorrentProgress(props.torrent))
-const progressPercentage = computed(() => Math.ceil(progress.value * 100))
-const progressProcessing = computed(() => isChecking.value || progress.value !== 1)
+const complete = computed(() => isTorrentComplete(props.torrent))
+const progressPercentage = computed(() => getProgressPercent(progress.value, complete.value))
+const progressProcessing = computed(() => isChecking.value || !complete.value)
 const errorMessage = computed(
   () => getTorrentError(props.torrent) || props.torrent.errorString || props.torrent.cachedError || ''
 )
