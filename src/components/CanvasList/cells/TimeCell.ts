@@ -13,7 +13,7 @@ export default function render(
   ctx.save()
   let displayText: string
   if (col.key === 'eta') {
-    displayText = formatEta(Number(row.eta), row.leftUntilDone, row.rateDownload)
+    displayText = formatEta(row)
   } else {
     const value = Number(row[col.key as keyof Torrent])
     const d = isNaN(value) ? '' : timeToStr(value)

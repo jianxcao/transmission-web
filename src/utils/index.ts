@@ -1,6 +1,6 @@
 import { NIcon } from 'naive-ui'
 import { h } from 'vue'
-import { getEtaSeconds } from './torrentEta'
+import { getEtaSeconds, type EtaInput } from './torrentEta'
 
 /**
  * 从 url 字符串中提取域名（host）
@@ -146,8 +146,8 @@ function formatEtaDuration(value: number): string {
 }
 
 /** 按 qBittorrent 的风格格式化下载剩余时间。 */
-export function formatEta(eta: number | null | undefined, leftUntilDone = 0, rateDownload = 0): string {
-  const seconds = getEtaSeconds({ eta, leftUntilDone, rateDownload })
+export function formatEta(torrent: EtaInput): string {
+  const seconds = getEtaSeconds(torrent)
   if (seconds <= 0) {
     return '0'
   }

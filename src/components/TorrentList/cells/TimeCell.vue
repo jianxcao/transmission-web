@@ -10,7 +10,7 @@ interface Column {
 const props = defineProps<{ value: number | string; row: Torrent; col: Column }>()
 const timeStr = computed(() => {
   if (props.col.key === 'eta') {
-    return formatEta(Number(props.value), props.row.leftUntilDone, props.row.rateDownload)
+    return formatEta(props.row)
   }
   const val = Number(props.value)
   if (isNaN(val)) {

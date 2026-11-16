@@ -30,14 +30,13 @@ const LEGACY_DEFAULT_TRACKERS = [
 
 export const isLegacyDefaultTrackerList = (value: unknown): boolean => {
   const trackers = Array.isArray(value)
-    ? value.map((tracker) => String(tracker))
+    ? value.map((tracker) => String(tracker)).join('\n')
     : typeof value === 'string'
-      ? value.split(/\r?\n/)
-      : []
-  const trackerSet = new Set(trackers.map((tracker) => tracker.trim()).filter(Boolean))
+      ? value
+      : ''
+  // 空行划分 tier，同一层内的顺序也有意义；仅兼容换行符和行首尾空白。
   return (
-    trackerSet.size === LEGACY_DEFAULT_TRACKERS.length &&
-    LEGACY_DEFAULT_TRACKERS.every((tracker) => trackerSet.has(tracker))
+    trackers.split(/\r?\n/).map((tracker) => tracker.trim()).join('\n').trim() === LEGACY_DEFAULT_TRACKERS.join('\n')
   )
 }
 
@@ -101,8 +100,11 @@ export const useSettingStore = defineStore('setting', () => {
       trackerLimitRules: [] as TrackerLimitRule[],
       // 是否已把本地规则迁移到服务端带宽组
       trackerLimitRulesMigrated: false,
-      // 是否已清理旧版本内置的默认 Tracker（包括服务端 session 设置）
-      legacyDefaultTrackersMigrated: false
+      // 旧版全局标记，仅用于识别已经完成过本地迁移的设置。
+      legacyDefaultTrackersMigrated: false,
+      legacyDefaultTrackersLocalMigrated: false,
+      // 服务端迁移按 RPC 地址分别记录，允许切换到其他 Transmission 实例。
+      legacyDefaultTrackersMigratedServers: [] as string[]
     },
     localStorage,
     { mergeDefaults: true, deep: true, writeDefaults: true }
@@ -116,8 +118,11 @@ export const useSettingStore = defineStore('setting', () => {
     setting.value.menuExpandedKeys = ['status', 'labels']
   }
   // 清除旧版本首次使用时写入 localStorage 的内置 Tracker 列表。
-  if (isLegacyDefaultTrackerList(setting.value.defaultTrackers)) {
-    setting.value.defaultTrackers = []
+  if (!setting.value.legacyDefaultTrackersLocalMigrated) {
+    if (!setting.value.legacyDefaultTrackersMigrated && isLegacyDefaultTrackerList(setting.value.defaultTrackers)) {
+      setting.value.defaultTrackers = []
+    }
+    setting.value.legacyDefaultTrackersLocalMigrated = true
   }
   // 兼容早期版本可能写入的 null/非法规则，避免页面初始化时调用 trim 崩溃。
   const normalizedTrackerRules = normalizeTrackerLimitRules(setting.value.trackerLimitRules)

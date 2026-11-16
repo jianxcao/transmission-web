@@ -332,6 +332,8 @@ export interface Torrent extends TorrentOther {
   peersSendingToUs: number
   /** 完成百分比，0~1 之间的小数 */
   percentDone: number
+  /** 磁力链接元数据完成度，0~1 之间的小数 */
+  metadataPercentComplete?: number
   /** 分片数量 */
   pieceCount: number
   /** 每个分片大小（字节） */

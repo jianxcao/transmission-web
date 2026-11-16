@@ -63,9 +63,7 @@
         <div class="info-item">
           <span>{{ t('torrentDetail.general.remaining') }}</span>
           <span
-            >{{ formatEta(torrent.eta, torrent.leftUntilDone, torrent.rateDownload) }} ({{
-              formatSize(torrent.leftUntilDone)
-            }})</span
+            >{{ formatEta(torrent) }} ({{ formatSize(torrent.leftUntilDone) }})</span
           >
         </div>
         <div class="info-item">
